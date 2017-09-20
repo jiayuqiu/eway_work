@@ -239,12 +239,45 @@ def sub_main_channel_poly_filter(warning_area_ais, enter_num, out_num, poly_df):
     :param poly_df: 入口（出口）多边形坐标数据，类型：data frame
     :return: 
     """
-    sub_main_channel_gdf = sub_main_channel.groupby("unique_ID")
-    poly_df = poly_df.groupby("poly_id")
-    sub_channel_ais_list = []
-    for key, value in sub_main_channel_gdf:
+    warning_area_ais_gdf = warning_area_ais.groupby("unique_ID")
+    print(poly_df)
+    enter_poly_df = poly_df[poly_df["poly_id"] == enter_num]
+    out_poly_df = poly_df[poly_df["poly_id"] == out_num]
+
+    sub_channel_mmsi = []
+    for key, value in warning_area_ais_gdf:
+        value_array = np.array(value)
         value_length = len(value)
         print(key)
+        mid_idx = value_length // 2
+        # 初始化对入口、出口的判断参数
+        enter_bool = False
+        out_bool = False
+
+        if value_length >= 3:
+            # 找到入口
+            for enter_idx in range(mid_idx):
+                if point_poly(value_array[enter_idx, 2], value_array[enter_idx, 3], enter_poly_df):
+                    input("=========enter==========")
+                    enter_bool = True
+                else:
+                    pass
+
+            # 找到出口
+            for out_idx in range(mid_idx, value_length):
+                if point_poly(value_array[enter_idx, 2], value_array[enter_idx, 3], out_poly_df):
+                    input("=========out==========")
+                    out_bool = True
+                else:
+                    pass
+
+        # 若满足出口与入口都是指定的编号，则记录mmsi编号
+        if enter_bool & out_bool:
+            sub_channel_mmsi.append(key)
+
+    # 根据获取到的mmsi编号抽取AIS数据
+    sub_channel_ais = warning_area_ais[warning_area_ais["unique_ID"].isin(sub_channel_mmsi)]
+    return sub_channel_ais
 
 
 def multiple_poly_list(kml_list):
@@ -338,21 +371,22 @@ if __name__ == "__main__":
 
     #----------------------------------------------------------------
     # 区分进入主航道是的入口编号
-    kml_path_list = ["/home/qiu/Documents/ys_ais/警戒区进口1.kml",
-                     "/home/qiu/Documents/ys_ais/警戒区进口2.kml",
-                     "/home/qiu/Documents/ys_ais/警戒区进口3.kml",
-                     "/home/qiu/Documents/ys_ais/警戒区进口4.kml",
-                     "/home/qiu/Documents/ys_ais/警戒区进口5.kml",
-                     "/home/qiu/Documents/ys_ais/警戒区进口6.kml"]
+    kml_path_list = ["/Users/qiujiayu/data/警戒区进口1.kml",
+                     "/Users/qiujiayu/data/警戒区进口2.kml",
+                     "/Users/qiujiayu/data/警戒区进口3.kml",
+                     "/Users/qiujiayu/data/警戒区进口4.kml",
+                     "/Users/qiujiayu/data/警戒区进口5.kml",
+                     "/Users/qiujiayu/data/警戒区进口6.kml"]
     poly_df = multiple_poly_list(kml_path_list)
+    
     print(poly_df.head())
-    main_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/201606_paint_ais_opt_2.csv")
+    main_channel_ais = pd.read_csv("/Users/qiujiayu/data/201606_paint_ais_opt_2.csv")
     print(main_channel_ais.head())
-    sub_channel_ais = sub_main_channel(main_channel_ais, poly_df)
-    sub_channel_ais = pd.DataFrame(sub_channel_ais)
-    sub_channel_ais.columns = ["unique_ID", "acquisition_time", "longitude", "latitude", "poly_id"]
+    sub_channel_ais = sub_main_channel_poly_filter(main_channel_ais, 6, 2, poly_df)
+    # sub_channel_ais = pd.DataFrame(sub_channel_ais)
+    # sub_channel_ais.columns = ["unique_ID", "acquisition_time", "longitude", "latitude", "poly_id"]
     # sub_channel_ais = sub_channel_ais[~sub_channel_ais["poly_id"].isnull()]
-    sub_channel_ais.to_csv("/home/qiu/Documents/ys_ais/sub_channel_ais_index_poly.csv", index=None)
+    sub_channel_ais.to_csv("/Users/qiujiayu/data/sub_channel_ais_index_poly.csv", index=None)
     print(sub_channel_ais)
 
     # # 找到进入警戒区的入口与出口编号
