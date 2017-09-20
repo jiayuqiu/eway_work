@@ -256,17 +256,17 @@ def sub_main_channel_poly_filter(warning_area_ais, enter_num, out_num, poly_df):
 
         if value_length >= 3:
             # 找到入口
-            for enter_idx in range(mid_idx):
+            for enter_idx in range(value_length):
                 if point_poly(value_array[enter_idx, 2], value_array[enter_idx, 3], enter_poly_df):
-                    input("=========enter==========")
+                    # input("=========enter==========")
                     enter_bool = True
                 else:
                     pass
 
             # 找到出口
-            for out_idx in range(mid_idx, value_length):
+            for out_idx in range(value_length):
                 if point_poly(value_array[enter_idx, 2], value_array[enter_idx, 3], out_poly_df):
-                    input("=========out==========")
+                    # input("=========out==========")
                     out_bool = True
                 else:
                     pass
@@ -290,14 +290,14 @@ def multiple_poly_list(kml_list):
     for kml in kml_list:
         coordinates_list = coordinates_kml(kml)
         for line in coordinates_list:
-            line.append(kml[-5])
+            line.append(int(kml[-5]))
             poly_list.append(line)
     poly_df = pd.DataFrame(poly_list)
     poly_df.columns = ["longitude", "latitude", "poly_id"]
     return poly_df
 
 
-def sum_ship_warning_area(ys_ais, center, radius=1.852 * 20, interval=10 * 60):
+def sum_ship_warning_area(ys_ais, center, radius=1.852*20, interval=10*60):
     """
     统计洋山警戒范围每10分钟内的船舶数量
     :param ys_ais: 洋山水域范围内的AIS数据，类型：data frame
@@ -306,22 +306,60 @@ def sum_ship_warning_area(ys_ais, center, radius=1.852 * 20, interval=10 * 60):
     :param interval: 统计间隔时间，单位：秒，类型：int
     :return: 每隔10分钟，警戒范围内的船舶数量，类型：data frame
     """
+    # 获取数据集中最小的AIS数据时间
+    min_time = min(ys_ais["acquisition_time"])
 
-def enter_out_poly(sub_channel_ais):
+    # 对所有AIS数据中的时间字段，减去最小时间
+    ys_ais["acquisition_time"] = ys_ais["acquisition_time"] - min_time
+
+    # 根据间隔时间进行分段
+    ys_ais["partition"] = ys_ais["acquisition_time"] // interval
+
+    # 计算每一段中，在警戒范围内的AIS数据条数
+    partition_list = list(set(ys_ais["partition"]))
+    partition_ship_list = []
+    for partition in partition_list:
+        print("now_partition is %d, all_partition is %d" % (partition, max(partition_list)))
+        sub_partition_array = np.array(ys_ais[ys_ais["partition"] == partition])
+        ship_list = []
+        for line in sub_partition_array:
+            dst = getDist(line[2], line[3], center[0], center[1])
+            if dst < radius:
+                ship_list.append(line[0])
+        ship_count = len(set(ship_list))
+        partition_ship_list.append([partition, ship_count])
+
+    # 输出结果
+    partition_df = pd.DataFrame(partition_ship_list)
+    partition_df.columns = ["partition", "count"]
+    return partition_df
+
+
+def fit_sub_channel(sub_channel_ais, interval_time=10*60):
     """
-    利用进出警戒区的多边形编号来区分形式的子航道
-    :param sub_channel_ais: 洋山水域范围内的AIS数据，类型：data frame
-    :return: 暂定
+    拟合子航道曲线
+    :param sub_channel_ais: 子航道的AIS数据，类型：data frame
+    :param interval_time: 间隔时间（默认10分钟），单位：秒，类型：int
+    :return: 由n个点组成的点组成的三维分段直线，类型：data frame
     """
-    sub_channel_df = sub_channel_ais[~sub_channel_ais["poly_id"].isnull()]
-    print(sub_channel_df.head())
-    for index, value in sub_channel_df.iterrows():
-        print("index = %d" % index)
-        if value["poly_id"]:
-            poly_id_list = value["poly_id"].split(";")
-            if len(set(poly_id_list)) == 3:
-                print(set(poly_id_list))
-                input("-----------------------")
+    # 根据间隔时间，获取子航道每条数据所处第几段
+    sub_channel_ais["partition"] = sub_channel_ais["acquisition_time"] // interval_time
+
+    # 获取分段列表
+    partition_list = list(set(sub_channel_ais["partition"]))
+    fit_points_list = []
+
+    for partition in partition_list:
+        partition_ais = sub_channel_ais[sub_channel_ais["partition"] == partition]
+        mean_lon = np.mean(partition_ais["longitude"])
+        mean_lat = np.mean(partition_ais["latitude"])
+        mean_time = np.mean(partition_ais["acquisition_time"])
+        fit_points_list.append([mean_lon, mean_lat, mean_time])
+
+    # 返回拟合函数的点
+    fit_points_df = pd.DataFrame(fit_points_list)
+    fit_points_df.columns = ["longitude", "latitude", "acquisition_time"]
+    return fit_points_df
 
 
 if __name__ == "__main__":
@@ -369,26 +407,44 @@ if __name__ == "__main__":
     # print(len(moved_out_df))
     # moved_out_df.to_csv("/home/qiu/Documents/ys_ais/201606_paint_ais_opt_2.csv", index=None)
 
-    #----------------------------------------------------------------
-    # 区分进入主航道是的入口编号
-    kml_path_list = ["/Users/qiujiayu/data/警戒区进口1.kml",
-                     "/Users/qiujiayu/data/警戒区进口2.kml",
-                     "/Users/qiujiayu/data/警戒区进口3.kml",
-                     "/Users/qiujiayu/data/警戒区进口4.kml",
-                     "/Users/qiujiayu/data/警戒区进口5.kml",
-                     "/Users/qiujiayu/data/警戒区进口6.kml"]
-    poly_df = multiple_poly_list(kml_path_list)
-    
-    print(poly_df.head())
-    main_channel_ais = pd.read_csv("/Users/qiujiayu/data/201606_paint_ais_opt_2.csv")
-    print(main_channel_ais.head())
-    sub_channel_ais = sub_main_channel_poly_filter(main_channel_ais, 6, 2, poly_df)
-    # sub_channel_ais = pd.DataFrame(sub_channel_ais)
-    # sub_channel_ais.columns = ["unique_ID", "acquisition_time", "longitude", "latitude", "poly_id"]
-    # sub_channel_ais = sub_channel_ais[~sub_channel_ais["poly_id"].isnull()]
-    sub_channel_ais.to_csv("/Users/qiujiayu/data/sub_channel_ais_index_poly.csv", index=None)
-    print(sub_channel_ais)
+    # #----------------------------------------------------------------
+    # # 区分进入主航道是的入口编号
+    # kml_path_list = ["/home/qiu/Documents/ys_ais/警戒区进口1.kml",
+    #                  "/home/qiu/Documents/ys_ais/警戒区进口2.kml",
+    #                  "/home/qiu/Documents/ys_ais/警戒区进口3.kml",
+    #                  "/home/qiu/Documents/ys_ais/警戒区进口4.kml",
+    #                  "/home/qiu/Documents/ys_ais/警戒区进口5.kml",
+    #                  "/home/qiu/Documents/ys_ais/警戒区进口6.kml"]
+    # poly_df = multiple_poly_list(kml_path_list)
+    # main_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/ys_warning_area_ais")
+    # test_df = poly_df[poly_df["poly_id"] == 1]
+    # sub_channel_ais = sub_main_channel_poly_filter(main_channel_ais, 6, 2, poly_df)
+    # # sub_channel_ais = pd.DataFrame(sub_channel_ais)
+    # # sub_channel_ais.columns = ["unique_ID", "acquisition_time", "longitude", "latitude", "poly_id"]
+    # # sub_channel_ais = sub_channel_ais[~sub_channel_ais["poly_id"].isnull()]
+    # sub_channel_ais.to_csv("/home/qiu/Documents/ys_ais/sub_channel_ais_south_down.csv", index=None)
+    # print(sub_channel_ais)
 
-    # # 找到进入警戒区的入口与出口编号
-    # sub_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/sub_channel_ais.csv")
-    # enter_out_poly(sub_channel_ais)
+    # # 子航道拟合
+    # # 122156281, 30551332, 7101
+    # sub_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/sub_channel_ais_south_down.csv")
+    # sub_channel_ais = sub_channel_ais[~sub_channel_ais["unique_ID"].isin([2092, 1623])]
+    # sub_channel_ais.to_csv("/home/qiu/Documents/ys_ais/south_down_ais_paint.csv", index=None)
+    # # input("---------------------------")
+    # fit_channel_df = fit_sub_channel(sub_channel_ais)
+    # fit_channel_df.to_csv("/home/qiu/Documents/ys_ais/south_down_fit_line.csv", index=None)
+    # print(fit_channel_df)
+
+    # 计算警戒范围内可能出现的最大船舶数量
+    data = pd.read_csv("/home/qiu/Documents/ys_ais/pre_201606_ys.csv", header=None)
+    data.columns = ["unique_ID", "acquisition_time", "target_type", "data_supplier", "data_source",
+                    "status", "longitude", "latitude", "area_ID", "speed", "conversion", "cog",
+                    "true_head", "power", "ext", "extend"]
+    data = data.loc[:, ["unique_ID", "acquisition_time", "longitude", "latitude"]]
+    print(data.head())
+    data["longitude"] = data["longitude"] / 1000000.
+    data["latitude"] = data["latitude"] / 1000000.
+    partition_count_df = sum_ship_warning_area(data, [122.1913, 30.5658])
+    partition_count_df.to_csv("/home/qiu/Documents/ys_ais/partition_count.csv", index=None)
+    print(partition_count_df)
+    print(partition_count_df.describe())
