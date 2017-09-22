@@ -12,7 +12,10 @@ def coordinates_kml(file_path):
     :param file_path: kml文件所在路径，类型：string
     :return: 经纬坐标，用“;”分割，类型：list
     """
+    # 打开kml文件
     kml_file = open(file_path, "r")
+
+    # 将kml中的文件转换成string后，将经纬度坐标信息转换成list
     kml_string = kml_file.read()
     coordinates_string = kml_string.split("<coordinates>")[1]\
                                    .split("</coordinates>")[0]\
@@ -53,7 +56,6 @@ def point_poly(pointLon, pointLat, polygon):
                 inside = not inside
         j = i
         i = i + 1
-
     return inside
 
 
@@ -248,15 +250,15 @@ def sub_main_channel_poly_filter(warning_area_ais, enter_num, out_num, poly_df):
     for key, value in warning_area_ais_gdf:
         value_array = np.array(value)
         value_length = len(value)
-        print(key)
         mid_idx = value_length // 2
+        print(key)
         # 初始化对入口、出口的判断参数
         enter_bool = False
         out_bool = False
 
         if value_length >= 3:
             # 找到入口
-            for enter_idx in range(value_length):
+            for enter_idx in range(mid_idx):
                 if point_poly(value_array[enter_idx, 2], value_array[enter_idx, 3], enter_poly_df):
                     # input("=========enter==========")
                     enter_bool = True
@@ -264,8 +266,8 @@ def sub_main_channel_poly_filter(warning_area_ais, enter_num, out_num, poly_df):
                     pass
 
             # 找到出口
-            for out_idx in range(value_length):
-                if point_poly(value_array[enter_idx, 2], value_array[enter_idx, 3], out_poly_df):
+            for out_idx in range(mid_idx, value_length):
+                if point_poly(value_array[out_idx, 2], value_array[out_idx, 3], out_poly_df):
                     # input("=========out==========")
                     out_bool = True
                 else:
@@ -297,7 +299,7 @@ def multiple_poly_list(kml_list):
     return poly_df
 
 
-def sum_ship_warning_area(ys_ais, center, radius=1.852*20, interval=10*60):
+def sum_ship_warning_area(ys_ais, center, radius=1.852*1, interval=10*60):
     """
     统计洋山警戒范围每10分钟内的船舶数量
     :param ys_ais: 洋山水域范围内的AIS数据，类型：data frame
@@ -392,7 +394,7 @@ if __name__ == "__main__":
     # out_df = out_df.sort_values(by=["unique_ID", "acquisition_time"])
     # out_df.to_csv("inside_poly_ais.csv", index=None)
 
-    #--------------------------------------------------------------
+    # --------------------------------------------------------------
     # # 找出在给定多边形的AIS数据
     # out_df = pd.read_csv("inside_poly_ais.csv")
     # print(len(set(out_df["unique_ID"])))
@@ -418,33 +420,40 @@ if __name__ == "__main__":
     # poly_df = multiple_poly_list(kml_path_list)
     # main_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/ys_warning_area_ais")
     # test_df = poly_df[poly_df["poly_id"] == 1]
-    # sub_channel_ais = sub_main_channel_poly_filter(main_channel_ais, 6, 2, poly_df)
+    # sub_channel_ais = sub_main_channel_poly_filter(main_channel_ais, 4, 1, poly_df)
+    # tmp_df = sub_channel_ais[(sub_channel_ais["latitude"] > 30.62) |
+    #                          (sub_channel_ais["latitude"] == 30.535891) |
+    #                          (sub_channel_ais["acquisition_time"] >= 5000)]
+    # filter_mmsi_list = list(set(tmp_df["unique_ID"]))
+    # sub_channel_ais = sub_channel_ais[~sub_channel_ais["unique_ID"].isin(filter_mmsi_list)]
     # # sub_channel_ais = pd.DataFrame(sub_channel_ais)
     # # sub_channel_ais.columns = ["unique_ID", "acquisition_time", "longitude", "latitude", "poly_id"]
     # # sub_channel_ais = sub_channel_ais[~sub_channel_ais["poly_id"].isnull()]
-    # sub_channel_ais.to_csv("/home/qiu/Documents/ys_ais/sub_channel_ais_south_down.csv", index=None)
-    # print(sub_channel_ais)
+    # sub_channel_ais.to_csv("/home/qiu/Documents/ys_ais/sub_channel_ais_east_west.csv", index=None)
+    # # print(sub_channel_ais)
 
-    # # 子航道拟合
-    # # 122156281, 30551332, 7101
-    # sub_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/sub_channel_ais_south_down.csv")
+    # ------------------------------------------------
+    # 子航道拟合
+    # 122156281, 30551332, 7101
+    sub_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/sub_channel_ais_west_east.csv")
     # sub_channel_ais = sub_channel_ais[~sub_channel_ais["unique_ID"].isin([2092, 1623])]
     # sub_channel_ais.to_csv("/home/qiu/Documents/ys_ais/south_down_ais_paint.csv", index=None)
-    # # input("---------------------------")
-    # fit_channel_df = fit_sub_channel(sub_channel_ais)
-    # fit_channel_df.to_csv("/home/qiu/Documents/ys_ais/south_down_fit_line.csv", index=None)
-    # print(fit_channel_df)
+    fit_channel_df = fit_sub_channel(sub_channel_ais)
+    fit_channel_df.to_csv("/home/qiu/Documents/ys_ais/west_east_fit_line.csv", index=None)
+    print(fit_channel_df)
 
-    # 计算警戒范围内可能出现的最大船舶数量
-    data = pd.read_csv("/home/qiu/Documents/ys_ais/pre_201606_ys.csv", header=None)
-    data.columns = ["unique_ID", "acquisition_time", "target_type", "data_supplier", "data_source",
-                    "status", "longitude", "latitude", "area_ID", "speed", "conversion", "cog",
-                    "true_head", "power", "ext", "extend"]
-    data = data.loc[:, ["unique_ID", "acquisition_time", "longitude", "latitude"]]
-    print(data.head())
-    data["longitude"] = data["longitude"] / 1000000.
-    data["latitude"] = data["latitude"] / 1000000.
-    partition_count_df = sum_ship_warning_area(data, [122.1913, 30.5658])
-    partition_count_df.to_csv("/home/qiu/Documents/ys_ais/partition_count.csv", index=None)
-    print(partition_count_df)
-    print(partition_count_df.describe())
+    # # ----------------------------------------------------------------
+    # # 计算警戒范围内可能出现的最大船舶数量
+    # data = pd.read_csv("/home/qiu/Documents/ys_ais/pre_201606_ys.csv", header=None)
+    # data.columns = ["unique_ID", "acquisition_time", "target_type", "data_supplier", "data_source",
+    #                 "status", "longitude", "latitude", "area_ID", "speed", "conversion", "cog",
+    #                 "true_head", "power", "ext", "extend"]
+    # data = data.loc[:, ["unique_ID", "acquisition_time", "longitude", "latitude"]]
+    # print(data.head())
+    # data["longitude"] = data["longitude"] / 1000000.
+    # data["latitude"] = data["latitude"] / 1000000.
+    # partition_count_df = sum_ship_warning_area(data, [122.1913, 30.5658], 1.852*2.0)
+    # partition_count_df.to_csv("/home/qiu/Documents/ys_ais/partition_count.csv", index=None)
+    # print(partition_count_df)
+    # print(partition_count_df.describe())
+    # print(set(partition_count_df["count"]))
