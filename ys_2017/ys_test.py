@@ -2,8 +2,29 @@
 
 import pandas as pd
 import numpy as np
+import urllib.request
+import json
+import re
+import time
+import lxml
 
 from base_func import getDist, getFileNameList
+from lxml.html import tostring
+
+
+####################################################
+
+# xpath爬取网页数据，中文解码
+def _callback(matches):
+    id = matches.group(1)
+    try:
+        return chr(int(id))
+    except:
+        return id
+
+
+def decode_unicode_references(data):
+    return re.sub("&#(\d+)(;|(?=\s))", _callback, str(data))
 
 
 def coordinates_kml(file_path):
@@ -441,10 +462,191 @@ def fit_sub_channel(sub_channel_ais, interval_time=10*60):
     return fit_points_df
 
 
+def filter_moor_ship(sub_channel_ais, interval_lon=0.5):
+    """
+    过滤子航道内停泊的船舶ais数据
+    :param sub_channel_ais: 子航道内的ais数据，类型：data frame
+    :param interval_lon: 最大最小经纬度之差，类型：float
+    :return: 无停泊船舶的子航道ais数据，类型：data frame
+    """
+    # 初始化需要过滤的mmsi列表
+    filter_mmsi_list = []
+
+    # 对子航道ais数据按mmsi进行分组
+    ship_gdf = sub_channel_ais.groupby('unique_ID')
+
+    # 判断每条船的最大最小经纬度之差
+    for key, value in ship_gdf:
+        max_lon = np.max(value['longitude'])
+        min_lon = np.min(value['longitude'])
+        if max_lon - min_lon < interval_lon:
+            filter_mmsi_list.append(key)
+        else:
+            pass
+    return filter_mmsi_list
+
+
+def filter_point_before_circle(fit_line_df):
+    """
+    从拟合曲线中找到离开圆之前的轨迹点
+    :param fit_line_df: 拟合曲线数据，类型：data frame
+    :return: 离开圆之前的拟合曲线
+    """
+    # 找到每条曲线中，离开圆之前的点
+    filtered_point_df = pd.DataFrame()
+    inside_circel_bool_list = []
+    for key, value in fit_line_df.groupby('line_id'):
+        inside_circle_bool = False
+        value = np.array(value)
+        for index, line in enumerate(value):
+            dst_center = getDist(lon1=line[0], lat1=line[1], lon2=122.1913, lat2=30.5658)
+            if dst_center < 1.852*2:
+                inside_circle_bool = True
+            else:
+                if inside_circle_bool:
+                    filtered_point_df = filtered_point_df.append(pd.DataFrame(value[:index, :]))
+                    # filtered_point_df.insert(4, 'inside_circie', inside_circel_bool_list)
+                    break
+            inside_circel_bool_list.append(inside_circle_bool)
+    filtered_point_df.insert(4, 'inside_circie', inside_circel_bool_list)
+    return filtered_point_df
+
+
+
+def predict_circle_ship_number(ys_ais, fit_line_df, str_time=1464739031, end_time=1465920000):
+    """
+    获取某10分钟时限内的ais数据，结合拟合后的曲线，预测1小时后船舶在警戒范围内的船舶数量
+    :param ys_ais: 洋山水域内的ais数据，类型：data frame
+    :param fit_line_df: 拟合曲线数据，类型：data frame
+    :param str_time: ais数据开始时间，类型：int
+    :param end_time: ais数据结束时间，类型：int
+    :return: 1小时后圆内的船舶条数，类型：int
+    """
+    # 初始化预测结果
+    predict_res = []
+
+    # 将拟合曲线数据转换为矩阵
+    fit_line_array = np.array(fit_line_df)
+    enter_out_array = fit_line_array[fit_line_array[:, 4] == True]
+
+    # 获取某10分钟时限的ais数据
+    predict_str_time = np.random.random_integers(str_time, end_time-600)
+    ys_ais = ys_ais[(ys_ais['acquisition_time'] >= predict_str_time) &
+                    (ys_ais['acquisition_time'] <= predict_str_time + 600)]
+    print("10分钟内，ais数据有%s" % len(ys_ais))
+    print("开始时间为 %s" % predict_str_time)
+
+    # 找到船舶最新一条的轨迹点，与拟合曲线中的点的位置关系
+    for mmsi, value in ys_ais.groupby('unique_ID'):
+        # print("mmsi = %d" % mmsi)
+        newest_point = value.iloc[-1, :]
+        min_dst = 99999999
+        min_dst_channel = False
+
+        # 用最新的ais数据点与拟合曲线数据中每个点进行对比，找到该点属于哪条航道
+        for row in fit_line_array:
+            point_line_dst = getDist(lon1=newest_point['longitude'], lat1=newest_point['latitude'],
+                                     lon2=row[0], lat2=row[1])
+            if point_line_dst < min_dst:
+                min_dst = point_line_dst
+                min_dst_channel = row[3]
+                now_time = row[2]
+                enter_time = enter_out_array[enter_out_array[:, 3] == min_dst_channel][0, 2] - now_time
+                out_time = enter_out_array[enter_out_array[:, 3] == min_dst_channel][-1, 2] - now_time
+
+
+        if (min_dst < 1.2) & (enter_time > 0) & (out_time > 0):
+            predict_res.append([mmsi, enter_time // 600, out_time // 600])
+        else:
+            pass
+    return predict_res, predict_str_time
+
+
+def real_ship_circle(ys_ais, predict_str_time, interval_time=30*60):
+    """
+    检验预测结果
+    :param ys_ais: 洋山水域内ais数据，类型：data frame
+    :param predict_str_time: 预测开始时间，类型：int
+    :param interval_time: 预测开始时间追溯时间，类型：int
+    :return: 真实圆内的船舶数量，类型：int
+    """
+    ys_ais = np.array(ys_ais[(ys_ais['acquisition_time'] >= predict_str_time + interval_time) &
+                             (ys_ais['acquisition_time'] <= predict_str_time + interval_time + 600)])
+    mmsi_list = []
+    for row in ys_ais:
+        dst_center = getDist(lon1=row[2], lat1=row[3], lon2=122.1913, lat2=30.5658)
+        if dst_center < 1.852 * 2:
+            mmsi_list.append(row[0])
+    return len(set(mmsi_list)), set(mmsi_list)
+
+
+def north_port_get():
+    from bs4 import BeautifulSoup
+
+    now_timestamp = int(time.time() * 1000)
+    url = r'http://115.231.126.81/Forecast/PopupContent?stationNum=58472&interval=24&_=%s' % now_timestamp
+    headers = {'User-Agent': r'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                             r'Chrome/45.0.2454.85 Safari/537.36 115Browser/6.0.3',
+               'Referer': r'http://www.lagou.com/zhaopin/Python/?labelWords=label',
+               'Connection': 'keep-alive'}
+    req = urllib.request.Request(url, headers=headers)
+    page_source_json = urllib.request.urlopen(req).read().decode('utf-8')
+    page_source = json.loads(page_source_json)['html']
+    bs_page = BeautifulSoup(page_source, 'html.parser').decode('utf-8')
+    root_page = lxml.etree.HTML(bs_page)
+
+    # 初始化日期，时间，风力，能见度列表
+    all_date_list = []
+    all_clock_list = []
+    all_wind_list = []
+    all_njd_list = []
+
+    # xpath获取时间数据
+    time_xpath = '//*[@style="min-width:60px;"]'
+    root_time_list = root_page.xpath(time_xpath)
+    for time_element in root_time_list:
+        time_str = decode_unicode_references(tostring(time_element)).split(r'<td style="min-width:60px;">\n    ')[1]\
+            .split(r'\n   </td>')[0]
+        time_date = int(time_str.split('日')[0])
+        time_clock = int(time_str.split('日')[1].split('时')[0])
+        all_date_list.append(time_date)
+        all_clock_list.append(time_clock)
+
+    # xpath获取风力数据
+    wind_xpath = '//table/tbody/tr'
+    root_wind_list = root_page.xpath(wind_xpath)
+    wind_str = decode_unicode_references(tostring(root_wind_list[0]))
+    wind_pattern = re.compile(u'<span style="background:.*?;width:auto;margin-left:2px;margin-right:2px;height:15px;line-height:15px;">'
+                              u'(.*?)</span>', re.S)
+    wind_elements_list = re.findall(wind_pattern, wind_str)
+    for wind_element in wind_elements_list:
+        wind_level = (wind_element.split(r'\n     ')[1]).split(r'\n    ')[0]
+        all_wind_list.append(int(wind_level))
+
+    # xpath获取能见度数据
+    njd_xpath = '//table/tbody/tr'
+    root_njd_list = root_page.xpath(njd_xpath)
+    njd_str = decode_unicode_references(tostring(root_njd_list[4]))
+    njd_pattern = re.compile(r'<span>(.*?)</span>', re.S)
+    njd_elements_list = re.findall(njd_pattern, njd_str)
+    for njd_element in njd_elements_list:
+        njd_dst = (njd_element.split(r'\n     ')[1]).split(r'\n    ')[0]
+        all_njd_list.append(int(njd_dst))
+    weather_predick_df = pd.DataFrame(columns=['date', 'clock', 'wind', 'njd'])
+    weather_predick_df['date'] = all_date_list
+    weather_predick_df['clock'] = all_clock_list
+    weather_predick_df['wind'] = all_wind_list
+    weather_predick_df['njd'] = all_njd_list
+    now_time_index = weather_predick_df[(weather_predick_df['date'] == int(time.strftime('%d'))) &
+                                        (weather_predick_df['clock'] == int(time.strftime('%H')))].index.tolist()[0]
+    weather_predick_df = weather_predick_df.iloc[now_time_index:, :]
+    return weather_predick_df
+
+
 if __name__ == "__main__":
     # # --------------------------------------------------------------------------
     # # 获取洋山水域内AIS数据
-    # data = pd.read_csv("/home/qiu/Documents/ys_ais/pre_201606_ys.csv", header=None)
+    # data = pd.read_csv("/Users/qiujiayu/data/pre_201606_ys.csv", header=None)
     # data.columns = ["unique_ID", "acquisition_time", "target_type", "data_supplier", "data_source",
     #                 "status", "longitude", "latitude", "area_ID", "speed", "conversion", "cog",
     #                 "true_head", "power", "ext", "extend"]
@@ -496,37 +698,44 @@ if __name__ == "__main__":
     # print(len(moved_out_df))
     # moved_out_df.to_csv("/home/qiu/Documents/ys_ais/new_moved_time_ais.csv", index=None)
 
-    #----------------------------------------------------------------
-    # 区分进入主航道是的入口编号
-    kml_path_list = ["/home/qiu/Documents/ys_ais/警戒区进口1.kml",
-                     "/home/qiu/Documents/ys_ais/新警戒区入口2.kml",
-                     "/home/qiu/Documents/ys_ais/新警戒区入口3.kml",
-                     "/home/qiu/Documents/ys_ais/新警戒区入口4.kml",
-                     "/home/qiu/Documents/ys_ais/新警戒区入口5.kml",
-                     "/home/qiu/Documents/ys_ais/新警戒区入口6.kml"]
-    poly_df = multiple_poly_list(kml_path_list)
-    main_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/new_moved_time_ais.csv")
-    # test_df = poly_df[poly_df["poly_id"] == 1]
-    sub_channel_ais = sub_main_channel_poly_filter(main_channel_ais, 3, 5, poly_df)
-    # tmp_df = sub_channel_ais[(sub_channel_ais["latitude"] > 30.62) |
-    #                          (sub_channel_ais["latitude"] == 30.535891) |
-    #                          (sub_channel_ais["acquisition_time"] >= 5000)]
-    # filter_mmsi_list = list(set(tmp_df["unique_ID"]))
-    # sub_channel_ais = sub_channel_ais[~sub_channel_ais["unique_ID"].isin(filter_mmsi_list)]
-    # sub_channel_ais = pd.DataFrame(sub_channel_ais)
-    # sub_channel_ais.columns = ["unique_ID", "acquisition_time", "longitude", "latitude", "poly_id"]
-    # sub_channel_ais = sub_channel_ais[~sub_channel_ais["poly_id"].isnull()]
-    sub_channel_ais.to_csv("/home/qiu/Documents/ys_ais/new_sub_channel_ais_north_up.csv", index=None)
-    # print(sub_channel_ais)
+    # # ----------------------------------------------------------------
+    # # 区分进入主航道是的入口编号
+    # kml_path_list = ["/home/qiu/Documents/ys_ais/警戒区进口1.kml",
+    #                  "/home/qiu/Documents/ys_ais/新警戒区入口2.kml",
+    #                  "/home/qiu/Documents/ys_ais/新警戒区入口3.kml",
+    #                  "/home/qiu/Documents/ys_ais/新警戒区入口4.kml",
+    #                  "/home/qiu/Documents/ys_ais/新警戒区入口5.kml",
+    #                  "/home/qiu/Documents/ys_ais/新警戒区入口6.kml"]
+    # poly_df = multiple_poly_list(kml_path_list)
+    # main_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/new_moved_time_ais.csv")
+    # # test_df = poly_df[poly_df["poly_id"] == 1]
+    # sub_channel_ais = sub_main_channel_poly_filter(main_channel_ais, 3, 5, poly_df)
+    # # tmp_df = sub_channel_ais[(sub_channel_ais["latitude"] > 30.62) |
+    # #                          (sub_channel_ais["latitude"] == 30.535891) |
+    # #                          (sub_channel_ais["acquisition_time"] >= 5000)]
+    # # filter_mmsi_list = list(set(tmp_df["unique_ID"]))
+    # # sub_channel_ais = sub_channel_ais[~sub_channel_ais["unique_ID"].isin(filter_mmsi_list)]
+    # # sub_channel_ais = pd.DataFrame(sub_channel_ais)
+    # # sub_channel_ais.columns = ["unique_ID", "acquisition_time", "longitude", "latitude", "poly_id"]
+    # # sub_channel_ais = sub_channel_ais[~sub_channel_ais["poly_id"].isnull()]
+    # sub_channel_ais.to_csv("/home/qiu/Documents/ys_ais/new_sub_channel_ais_north_up.csv", index=None)
+    # # print(sub_channel_ais)
 
     # # ------------------------------------------------
     # # 子航道拟合
     # # 122156281, 30551332, 7101
-    # sub_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/sub_channel_ais_west_east.csv")
-    # # sub_channel_ais = sub_channel_ais[~sub_channel_ais["unique_ID"].isin([2092, 1623])]
-    # # sub_channel_ais.to_csv("/home/qiu/Documents/ys_ais/south_down_ais_paint.csv", index=None)
+    # sub_channel_ais = pd.read_csv("/Users/qiujiayu/data/new_sub_channel_ais_west_east.csv")
+    # # print(sub_channel_ais.head())
+    # # filter_mmsi = sub_channel_ais[(sub_channel_ais["acquisition_time"] == 3474)]
+    # # print(filter_mmsi)
+    # filter_mmsi = filter_moor_ship(sub_channel_ais)
+    # print((filter_mmsi))
+    # input("==============")
+    # filter_mmsi.extend([6, 31, 56])
+    # sub_channel_ais = sub_channel_ais[~sub_channel_ais["unique_ID"].isin(filter_mmsi)]
+    # sub_channel_ais.to_csv("/Users/qiujiayu/data/new_west_east_ais_paint.csv", index=None)
     # fit_channel_df = fit_sub_channel(sub_channel_ais)
-    # fit_channel_df.to_csv("/home/qiu/Documents/ys_ais/west_east_fit_line.csv", index=None)
+    # fit_channel_df.to_csv("/Users/qiujiayu/data/new_west_east_fit_line.csv", index=None)
     # print(fit_channel_df)
 
     # # ----------------------------------------------------------------
@@ -544,3 +753,30 @@ if __name__ == "__main__":
     # print(partition_count_df)
     # print(partition_count_df.describe())
     # print(set(partition_count_df["count"]))
+
+    # # ------------------------------------------------------------------
+    # # 找到拟合曲线中，离开圆之前的点
+    # fit_line_east_west_df = pd.read_csv('/Users/qiujiayu/data/east_west_fit_line.csv')
+    # fit_line_north_up_df = pd.read_csv('/Users/qiujiayu/data/new_north_up_fit_line.csv')
+    # fit_line_south_down_df = pd.read_csv('/Users/qiujiayu/data/new_south_down_fit_line.csv')
+    # fit_line_west_east_df = pd.read_csv('/Users/qiujiayu/data/new_west_east_fit_line.csv')
+    # fit_line_df = pd.concat([fit_line_east_west_df, fit_line_north_up_df,
+    #                          fit_line_south_down_df, fit_line_west_east_df], ignore_index=True)
+    # filtered_fit_line_df = filter_point_before_circle(fit_line_df=fit_line_df)
+    # print(filtered_fit_line_df)
+    #
+    # # 检验模型
+    # predict_res, predict_str_time = predict_circle_ship_number(ys_ais=data, fit_line_df=filtered_fit_line_df)
+    # predict_res_df = pd.DataFrame(predict_res, columns=['mmsi', 'enter_time', 'out_time'])
+    # print(predict_res_df)
+    # # res = predict_res[((predict_res['enter_time'] >= 6.) & (predict_res['enter_time'] <= 7.)) |
+    # #                   ((predict_res['out_time'] >= 6.) & (predict_res['out_time'] <= 7.))]
+    # # print(len(res))
+    # real_number, mmsi_list = real_ship_circle(ys_ais=data, predict_str_time=predict_str_time)
+    # print(real_number, mmsi_list)
+    # print(predict_str_time)
+
+    # -------------------------------------------------------------------
+    # 测试网页数据get
+    weather_predict_df = north_port_get()
+    print(weather_predict_df)
