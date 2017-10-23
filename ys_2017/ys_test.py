@@ -7,9 +7,16 @@ import json
 import re
 import time
 import lxml
+import pymysql
 
-from base_func import getDist, getFileNameList
+
 from lxml.html import tostring
+from base_func import getDist, getFileNameList, is_line_cross
+from bridge import Bridge
+from emergency import Emergency
+from traffic import Traffic
+from weather import Weather
+from port import Port
 
 
 ####################################################
@@ -581,6 +588,10 @@ def real_ship_circle(ys_ais, predict_str_time, interval_time=30*60):
 
 
 def north_port_get():
+    """
+    获取北部港区风力、能见度数据
+    :return: 返回日期，时间，风力，能见度数据，类型：data frame
+    """
     from bs4 import BeautifulSoup
 
     now_timestamp = int(time.time() * 1000)
@@ -616,7 +627,7 @@ def north_port_get():
     wind_xpath = '//table/tbody/tr'
     root_wind_list = root_page.xpath(wind_xpath)
     wind_str = decode_unicode_references(tostring(root_wind_list[0]))
-    wind_pattern = re.compile(u'<span style="background:.*?;width:auto;margin-left:2px;margin-right:2px;height:15px;line-height:15px;">'
+    wind_pattern = re.compile(u'<span style="background:.*?">'
                               u'(.*?)</span>', re.S)
     wind_elements_list = re.findall(wind_pattern, wind_str)
     for wind_element in wind_elements_list:
@@ -638,15 +649,172 @@ def north_port_get():
     weather_predick_df['wind'] = all_wind_list
     weather_predick_df['njd'] = all_njd_list
     now_time_index = weather_predick_df[(weather_predick_df['date'] == int(time.strftime('%d'))) &
-                                        (weather_predick_df['clock'] == int(time.strftime('%H')))].index.tolist()[0]
-    weather_predick_df = weather_predick_df.iloc[now_time_index:, :]
-    return weather_predick_df
+                                        (weather_predick_df['clock'] == int(time.strftime('%H')))].index.tolist()
+    if len(now_time_index) > 0:
+        weather_predick_df = weather_predick_df.iloc[now_time_index:, :]
+    else:
+        weather_predick_df = weather_predick_df.iloc[-1, :]
+
+    return np.max(weather_predick_df['wind']), np.min(weather_predick_df['njd'])
+
+
+def bridge_cross_poly(ys_ais):
+    """
+    找到东海大桥通航孔多边形
+    :param ys_ais: 洋山水域ais数据，类型：data frame
+    :return: 返回通过东海大桥的ais数据点，类型：data frame
+    """
+    bridge_line_1 = [[121.9101275192141, 30.85886907127729], [121.9743845226048, 30.74938456976765]]
+    bridge_line_2 = [[121.9740364308981, 30.74907407855846], [121.9754932694055, 30.70342865962283]]
+    bridge_line_3 = [[121.9758474404916, 30.70342475630693], [122.0105453839071, 30.65993827754983]]
+    ys_ais_gdf = ys_ais.groupby('unique_ID')
+
+    crossing_points = []
+    for mmsi, value in ys_ais_gdf:
+        print('mmsi = %s' % mmsi)
+        value_array = np.array(value)
+        value_array = value_array[value_array[:, 1].argsort()]
+
+        # 从第一条开始循环一条船的ais数据
+        index = 0
+        if len(value_array) > 1:
+            while index < (len(value_array) - 1):
+                if is_line_cross(str1=[value_array[index, 2], value_array[index, 3]],
+                                 end1=[value_array[index + 1, 2], value_array[index + 1, 3]],
+                                 str2=bridge_line_3[0], end2=bridge_line_3[1]):
+                    crossing_points.append([value_array[index, 2], value_array[index, 3]])
+                    crossing_points.append([value_array[index + 1, 2], value_array[index + 1, 3]])
+                index += 1
+    return crossing_points
+
+
+def get_bridge_poly():
+    """
+    获取bridge_data中，通航孔的多边形数据
+    :return: 多边形数据的矩阵，类型np.array
+    """
+    # 获取通航孔多边形坐标
+    bridge_poly_list = []
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic')
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM bridge_data")
+    for row in cur.fetchall():
+        poly_id = row[0]
+        poly_coordinate_string = row[-1]
+        print(poly_coordinate_string)
+        poly_coordinate_list = []
+        for coordinate in poly_coordinate_string.split(';'):
+            if coordinate:
+                lon_ = float(coordinate.split('*')[0])
+                lat_ = float(coordinate.split('*')[1])
+                poly_coordinate_list.append([lon_, lat_])
+        bridge_poly_list.append([poly_id, poly_coordinate_list])
+    cur.close()
+    conn.close()
+    return bridge_poly_list
+
+
+def check_cross(mmsi):
+    """
+    判断该船舶是否满足通航条件
+    :param mmsi: 船舶mmsi
+    :return: T/F
+    """
+    return True
+
+
+def bridge_main(ys_ais):
+    """
+    每10分钟判断一次，经过东海大桥通航孔的船舶数量
+    :param ys_ais: 10分钟洋山水域内的ais数据，类型：data frame
+    :return: 1-5号多边形内的船舶数量与mmsi列表
+    """
+    # 将ais的data frame转换为array
+    ys_ais_array = np.array(ys_ais)
+
+    # 获取多边形数据
+    poly_coordinate_list = get_bridge_poly()
+
+    # 找出多边形中的船舶数量
+    for poly_ in poly_coordinate_list:
+        poly_id = poly_[0]
+        print(poly_id)
+        each_coordinate_array = np.array(poly_[1])
+        inside_poly_mmsi_list = []
+        for ais_row in ys_ais_array:
+            if point_poly(pointLon=ais_row[2], pointLat=ais_row[3], polygon=each_coordinate_array):
+                cross_bool = check_cross(ais_row[0])
+
+
+def merge_ship_static(file_path):
+    """
+    合并船舶信息表
+    :param file_path: 表格所在路径，类型：string
+    :return: 船舶信息合并后的数据，类型：data frame
+    """
+    file_name_list = getFileNameList(file_path)
+    ship_static_df_list = []
+    for file_name in file_name_list:
+        print(file_name)
+        ship_static_df = pd.read_excel(file_path + file_name)
+        ship_static_df_list.append(ship_static_df)
+    print("mergeing....")
+    all_ship_df = pd.concat(ship_static_df_list)
+    return all_ship_df
+
+
+def ship_static_opt(file_path):
+    file_ = open(file_path)
+    ship_static_list = []
+    for line in file_:
+        if "主机功率" not in line:
+            line_list = line.split("\n")[0].split(",")
+            out_line_list = []
+            for ele in line_list:
+                tmp_ele = ele.replace(" ", "").replace(",", "")
+                out_line_list.append(tmp_ele)
+            ship_static_list.append(out_line_list)
+    ship_static_df = pd.DataFrame(ship_static_list)
+    return ship_static_df
+
+
+def emergency_ship_mysql():
+    """
+    应急船舶数据导入数据库
+    :return:
+    """
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    emergency_ship_array = np.array(pd.read_csv('/home/qiu/Documents/ys_ais/船舶数据清单/'
+                                    '上海海事局辖区社会应急力量配置情况统计 (辖区汇总表)-20171020.csv'))
+    print(emergency_ship_array)
+    count = 20
+    for line in emergency_ship_array:
+        insert_sql = """
+                     INSERT INTO emergency_ship VALUE('%s', '%s', null, null, null, null, '%s', '%s', '%s', null, null, 
+                     '%s', '%s', null, null, '%s', '%s', '%s', '%s', '%s', '%s', 
+                     '%s', '%s', '%s', '%s', '%s', null, '%s', '%s', '%s', '%s', 
+                     null, '%s', '%s', '%s', '%s', '%s', '%s')
+                     """ % (count, line[6], int(line[27]), line[26], line[5],
+                            line[7], line[8],
+                            line[1], line[3], line[10], line[11], line[12], line[13], line[14], line[15],
+                            line[16], line[17], line[18], line[20], line[21], line[22], line[23],
+                            str(line[25]), str(line[28]), str(line[29]), str(line[30]), str(line[31]), str(line[32]))
+        count += 1
+        cur.execute(insert_sql)
+    conn.commit()
+    cur.close()
+    conn.commit()
 
 
 if __name__ == "__main__":
     # # --------------------------------------------------------------------------
     # # 获取洋山水域内AIS数据
-    # data = pd.read_csv("/Users/qiujiayu/data/pre_201606_ys.csv", header=None)
+    # data = pd.read_csv("/home/qiu/Documents/ys_ais/pre_201606_ys.csv", header=None)
     # data.columns = ["unique_ID", "acquisition_time", "target_type", "data_supplier", "data_source",
     #                 "status", "longitude", "latitude", "area_ID", "speed", "conversion", "cog",
     #                 "true_head", "power", "ext", "extend"]
@@ -654,6 +822,14 @@ if __name__ == "__main__":
     # data = data.sort_values(by=["unique_ID", "acquisition_time"])
     # data["longitude"] = data["longitude"] / 1000000.
     # data["latitude"] = data["latitude"] / 1000000.
+
+    # # 获取某10分钟时限的ais数据
+    # str_time = 1464739031
+    # end_time = 1465920000
+    # predict_str_time = np.random.random_integers(str_time, end_time - 600)
+    # ys_ais = data[(data['acquisition_time'] >= predict_str_time) &
+    #               (data['acquisition_time'] <= predict_str_time + 600)]
+    # ys_ais.to_csv('/home/qiu/Documents/ys_ais/pre_201606_ys_10mins.csv', index=None)
 
     # ------------------------------------------------------------------------
     # 找到在警戒区内出现过的船舶ais，并追溯前后1.5小时
@@ -756,15 +932,16 @@ if __name__ == "__main__":
 
     # # ------------------------------------------------------------------
     # # 找到拟合曲线中，离开圆之前的点
-    # fit_line_east_west_df = pd.read_csv('/Users/qiujiayu/data/east_west_fit_line.csv')
-    # fit_line_north_up_df = pd.read_csv('/Users/qiujiayu/data/new_north_up_fit_line.csv')
-    # fit_line_south_down_df = pd.read_csv('/Users/qiujiayu/data/new_south_down_fit_line.csv')
-    # fit_line_west_east_df = pd.read_csv('/Users/qiujiayu/data/new_west_east_fit_line.csv')
+    # fit_line_east_west_df = pd.read_csv('/home/qiu/Documents/ys_ais/east_west_fit_line.csv')
+    # fit_line_north_up_df = pd.read_csv('/home/qiu/Documents/ys_ais/new_north_up_fit_line.csv')
+    # fit_line_south_down_df = pd.read_csv('/home/qiu/Documents/ys_ais/new_south_down_fit_line.csv')
+    # fit_line_west_east_df = pd.read_csv('/home/qiu/Documents/ys_ais/new_west_east_fit_line.csv')
     # fit_line_df = pd.concat([fit_line_east_west_df, fit_line_north_up_df,
     #                          fit_line_south_down_df, fit_line_west_east_df], ignore_index=True)
     # filtered_fit_line_df = filter_point_before_circle(fit_line_df=fit_line_df)
+    # filtered_fit_line_df.to_csv("/home/qiu/Documents/filtered_fit_line.csv", index=None)
     # print(filtered_fit_line_df)
-    #
+
     # # 检验模型
     # predict_res, predict_str_time = predict_circle_ship_number(ys_ais=data, fit_line_df=filtered_fit_line_df)
     # predict_res_df = pd.DataFrame(predict_res, columns=['mmsi', 'enter_time', 'out_time'])
@@ -776,7 +953,86 @@ if __name__ == "__main__":
     # print(real_number, mmsi_list)
     # print(predict_str_time)
 
-    # -------------------------------------------------------------------
-    # 测试网页数据get
-    weather_predict_df = north_port_get()
-    print(weather_predict_df)
+    # # -------------------------------------------------------------------
+    # # 测试网页数据get
+    # max_wind, min_njd = north_port_get()
+    # print(max_wind, min_njd)
+
+    # # -------------------------------------------------------------------
+    # # 获取通过东海大桥的点
+    # crossing_points = bridge_cross_poly(data)
+    # crossing_points_df = pd.DataFrame(crossing_points)
+    # crossing_points_df.columns = ['longitude', 'latitude']
+    # crossing_points_df.to_csv('/home/qiu/Documents/ys_ais/crossing_bridge_points_3.csv', index=None)
+
+    # ----------------------------------------------------------------------
+    # 东海大桥通航孔坐标列表转字符串
+    # kml_path_list = ["/home/qiu/Documents/ys_ais/通航孔1.kml",
+    #                  "/home/qiu/Documents/ys_ais/通航孔2.kml",
+    #                  "/home/qiu/Documents/ys_ais/通航孔3.kml",
+    #                  "/home/qiu/Documents/ys_ais/通航孔4.kml",
+    #                  "/home/qiu/Documents/ys_ais/通航孔5.kml"]
+    # bridge_ploy = multiple_poly_list(kml_path_list)
+    # print(bridge_ploy)
+    # for poly_id, value in bridge_ploy.groupby('poly_id'):
+    #     print(poly_id)
+    #     value_array = np.array(value)
+    #     coordinate_string = ""
+    #     for row in value_array:
+    #         coordinate_string = coordinate_string + \
+    #                             str(round(float(row[0]), 4)) + "*" + str(round(float(row[1]), 4)) + ";"
+    #     print(coordinate_string)
+
+    # # ----------------------------------------------------
+    # # 获取最新10分钟内，东海大桥的通航情况
+    # bridge = Bridge()
+    # ys_ais_10mins = pd.read_csv('/home/qiu/Documents/ys_ais/pre_201606_ys_10mins.csv')
+    # print(ys_ais_10mins)
+    # bridge_cross_df = bridge.bridge_main(ys_ais=ys_ais_10mins)
+
+    # ------------------------------------------------------
+    # 应急决策
+    # emergency = Emergency()
+    # emergency.emergency_main(ys_ais_10mins=ys_ais_10mins)
+
+    # # --------------------------------------------------------
+    # # 交通预警
+    # ys_ais_10mins = pd.read_csv('/home/qiu/Documents/ys_ais/pre_201606_ys_10mins.csv')
+    # traffic = Traffic()
+    # predict_res_df = pd.DataFrame(traffic.traffic_main(ys_ais=ys_ais_10mins))
+
+    # # -------------------------------------------------------
+    # # 天气报告
+    # weather = Weather()
+    # weather.report_mysql()
+
+    # # --------------------------------------------------------
+    # # 靠离泊
+    # port = Port()
+    # port.port_main()
+
+    # --------------------------------------------------------
+    # 合并从洋山获取到的船舶静态数据
+    # file_path = "/home/qiu/Documents/ys_ais/船舶数据清单/FULL/"
+    # all_ship_static_df = merge_ship_static(file_path)
+    # all_ship_static_df_length = len(all_ship_static_df)
+    # all_ship_static_array = np.array(all_ship_static_df)
+    # for index in range(all_ship_static_df_length):
+    #     print(index)
+    #     columns_length = len(all_ship_static_array[index, :])
+    #     for column in range(columns_length):
+    #         if ',' in str(all_ship_static_array[index, column]):
+    #             all_ship_static_array[index, column] = str(all_ship_static_array[index, column]).replace(',', '')\
+    #                                                      .replace(' ', '')
+    # all_ship_static_opt_df = pd.DataFrame(all_ship_static_array)
+    # all_ship_static_opt_df.to_csv('/home/qiu/Documents/ys_ais/all_ship_static_ys.csv', index=None)
+    # print(all_ship_static_df.head())
+    #-------------------------------------------------------------
+    # file_path = "/home/qiu/Documents/ys_ais/all_ship_static_ys.csv"
+    # header = pd.read_excel('/home/qiu/Documents/ys_ais/船舶数据清单/FULL/hsData_0.xls').columns
+    # df = ship_static_opt(file_path)
+    # df.columns = header
+    # df.to_csv('/home/qiu/Documents/ys_ais/all_ship_static_ys_opt.csv', index=None)
+    # print(df.head())
+
+    emergency_ship_mysql()
