@@ -79,8 +79,8 @@ class format_convert(object):
             pass
 
     # 从博贸的ais中找出700的船舶并转换为三阶段表格
-    def bm_to_thr_700(self, line):
-        if (not "value" in line):
+    def bm_to_thr_customize(self, line):
+        if not "value" in line:
             n_spl = line.split('\n')[0]
             description_spt = n_spl.split('\t')
             mmsi_time = description_spt[1].split(' ')
@@ -104,7 +104,7 @@ class format_convert(object):
             extend = detail_data[1] + "&" + detail_data[3] + "&&&&"
             shiptype = int(detail_data[-1])
 
-            if (isInRange(shiptype, 70., 89.)):
+            if isInRange(longitude, 70., 89.):
                 outStr = unique_ID + "," + acq_time + "," + target_type + "," + data_supplier + "," + \
                          data_source + "," + status + "," + \
                          str(int(longitude * 1000000.)) + "," + str(int(latitude * 1000000.)) + "," + \
