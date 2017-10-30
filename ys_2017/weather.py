@@ -306,9 +306,6 @@ class Weather(object):
         # 获取上海、舟山、北部港区气象报告
         zhoushan_weather = self.zhoushan()
         shanghai_weather = self.shanghai()
-        # print(shanghai_weather)
-        # print(type(shanghai_weather[2]))
-        # input("-------")
         north_port_weather = self.north_port()
 
         # 从气象报告中获取风力、能见度预警
@@ -331,9 +328,10 @@ class Weather(object):
         # 判断舟山气象报告是否变化
         if (zhoushan_newest_pub_date != zhoushan_weather[0]) | (zhoushan_newest_pub_clock != zhoushan_weather[1]):
             zhoushan_change_bool = True
+            zs_report = '舟山气象台' + zhoushan_weather[0] + ' ' + zhoushan_weather[1] + '发布: ' + zhoushan_weather[2]
             zhoushan_insert_sql = "INSERT INTO weather_report(pubDate, pubClock, report, njd, srcLoc) " \
                                   "VALUES('%s', '%s', '%s', '%d', '%s')" % \
-                                  (zhoushan_weather[0], zhoushan_weather[1], zhoushan_weather[2],
+                                  (zhoushan_weather[0], zhoushan_weather[1], zs_report,
                                    north_port_weather[3], "舟山")
             cur.execute(zhoushan_insert_sql)
             print("舟山数据插入成功")
@@ -341,9 +339,10 @@ class Weather(object):
         # 判断上海气象是否变化
         if (shanghai_newest_pub_date != shanghai_weather[0]) | (shanghai_newest_pub_clock != shanghai_weather[1]):
             shanghai_change_bool = True
+            sh_report = '上海气象台' + shanghai_weather[0] + ' ' + shanghai_weather[1] + '发布: ' + shanghai_weather[2]
             shanghai_insert_sql = "INSERT INTO weather_report(pubDate, pubClock, report, njd, srcLoc) " \
                                   "VALUES('%s', '%s', '%s', '%d', '%s')" % \
-                                  (shanghai_weather[0], shanghai_weather[1], shanghai_weather[2],
+                                  (shanghai_weather[0], shanghai_weather[1], sh_report,
                                    north_port_weather[3], "上海")
             cur.execute(shanghai_insert_sql)
             print("上海数据插入成功")
@@ -352,9 +351,10 @@ class Weather(object):
         if (north_port_newest_pub_date != north_port_weather[0]) | (north_port_newest_pub_clock !=
                                                                         north_port_weather[1]):
             north_port_change_bool = True
+            np_report = '北部港区' + north_port_weather[0] + ' ' + north_port_weather[1] + '发布: ' + north_port_weather[4]
             north_port_insert_sql = "INSERT INTO weather_report(pubDate, pubClock, report, njd, srcLoc) " \
                                     "VALUES('%s', '%s', '%s', '%d', '%s')" % \
-                                    (north_port_weather[0], north_port_weather[1], north_port_weather[4],
+                                    (north_port_weather[0], north_port_weather[1], np_report,
                                      north_port_weather[3], "北部港区")
             cur.execute(north_port_insert_sql)
             print("北部港区数据插入成功")
@@ -387,14 +387,14 @@ class Weather(object):
         :param report_: 气象报告，类型：string
         :return: 平均风力等级，阵风风力等级
         """
-        pattern = re.compile(u'阵风(.*?)级', re.S)
+        pattern = re.compile(u'今天.*?阵风(.*?)级', re.S)
         items_zf = re.findall(pattern, report_)
 
-        pattern_to = re.compile(u'到(.*?)级', re.S)
-        pattern_east = re.compile(u'东风(.*?)级', re.S)
-        pattern_south = re.compile(u'南风(.*?)级', re.S)
-        pattern_west = re.compile(u'西风(.*?)级', re.S)
-        pattern_north = re.compile(u'北风(.*?)级', re.S)
+        pattern_to = re.compile(u'今天.*?到(.*?)级', re.S)
+        pattern_east = re.compile(u'今天.*?东风(.*?)级', re.S)
+        pattern_south = re.compile(u'今天.*?南风(.*?)级', re.S)
+        pattern_west = re.compile(u'今天.*?西风(.*?)级', re.S)
+        pattern_north = re.compile(u'今天.*?北风(.*?)级', re.S)
 
         items_to = re.findall(pattern_to, report_)
         for x in items_to:

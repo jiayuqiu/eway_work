@@ -10,9 +10,23 @@ from ais_analysis import AIS
 
 class Traffic(object):
     def __init__(self):
+        # 链接数据库
+        conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                               db='dbtraffic', charset='utf8')
+        cur = conn.cursor()
+
         self.fit_line_df = pd.read_csv('/home/qiu/Documents/filtered_fit_line.csv')
-        self.ship_static_df = pd.read_csv('/home/qiu/Documents/ys_ais/all_ship_static_ys_opt.csv')
-        self.ship_static_df = self.ship_static_df[~self.ship_static_df['MMSI'].isnull()]
+        select_sql = """
+                                 SELECT * FROM ship_static_data
+                                 """
+        cur.execute(select_sql)
+        self.ship_static_df = pd.DataFrame(list(cur.fetchall()))
+        self.ship_static_df.columns = ['ssd_id', 'mmsi', 'imo', 'ship_chinese_name', 'ship_english_name',
+                                       'ship_callsign',
+                                       'sea_or_river', 'flag', 'sail_area', 'ship_port', 'ship_type', 'tonnage', 'dwt',
+                                       'monitor_rate', 'length', 'width', 'wind_resistance_level', 'height_above_water']
+        # self.ship_static_df = pd.read_csv('/home/qiu/Documents/ys_ais/all_ship_static_ys_opt.csv')
+        self.ship_static_df = self.ship_static_df[~self.ship_static_df['mmsi'].isnull()]
 
     def predict_circle_ship_number(self, ys_ais):
         """
@@ -41,7 +55,7 @@ class Traffic(object):
         for mmsi, value in ys_ais.groupby('unique_ID'):
             # print("mmsi = %d" % mmsi)
             newest_point = value.iloc[-1, :]
-            min_dst = 99999999
+            min_dst = 99999999.
             min_dst_channel = False
 
             # 用最新的ais数据点与拟合曲线数据中每个点进行对比，找到该点属于哪条航道
@@ -55,8 +69,7 @@ class Traffic(object):
                     enter_time = enter_out_array[enter_out_array[:, 3] == min_dst_channel][0, 2] - now_time
                     out_time = enter_out_array[enter_out_array[:, 3] == min_dst_channel][-1, 2] - now_time
 
-
-            if (min_dst < 1.2) & (enter_time > 0) & (out_time > 0):
+            if (min_dst < 1.5) & (enter_time > 0) & (out_time > 0):
                 predict_res.append([mmsi, int(enter_time // 600), int(out_time // 600)])
             else:
                 pass
@@ -137,10 +150,9 @@ class Traffic(object):
         # predict_res_df.columns = ['mmsi', 'enter_time', 'out_time']
         shiptype_list = []
         for index, value in predict_res_df.iterrows():
-            tmp_ship_static = self.ship_static_df[self.ship_static_df['MMSI'] == value['mmsi']]
+            tmp_ship_static = self.ship_static_df[self.ship_static_df['mmsi'] == value['mmsi']]
             if len(tmp_ship_static) > 0:
                 shiptype_list.append(tmp_ship_static.iloc[0, 4])
-                print()
             else:
                 shiptype_list.append('其他')
         predict_res_df['ship_type'] = shiptype_list

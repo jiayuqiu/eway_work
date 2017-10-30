@@ -715,15 +715,6 @@ def get_bridge_poly():
     return bridge_poly_list
 
 
-def check_cross(mmsi):
-    """
-    判断该船舶是否满足通航条件
-    :param mmsi: 船舶mmsi
-    :return: T/F
-    """
-    return True
-
-
 def bridge_main(ys_ais):
     """
     每10分钟判断一次，经过东海大桥通航孔的船舶数量
@@ -764,7 +755,71 @@ def merge_ship_static(file_path):
     return all_ship_df
 
 
+def if_string(test_string):
+    is_string = False
+    for x in test_string:
+        if (x.isdigit()) | (x == '.'):
+            is_string = True
+        else:
+            is_string = False
+            break
+    if not is_string:
+        return '0'
+    else:
+        return test_string
+
+
+def ship_static_mysql():
+    """
+    船舶静态数据入库
+    :return:
+    """
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    # 读取船舶静态数据
+    ship_static_df = pd.read_csv('/home/qiu/Documents/ys_ais/all_ship_static_ys_opt.csv').fillna(0)
+    ship_static_array = np.array(ship_static_df)
+    print(ship_static_df.columns)
+
+    # 循环导入船舶静态数据
+    ssd_id = 4
+    error_count = 0
+    for line in ship_static_array:
+        try:
+            mmsi = if_string(str(line[10]))
+            imo = if_string(str(line[8]))
+            tonnage = if_string(str(line[20]))
+            dwt = if_string(str(line[22]))
+            monitor_rate = if_string(str(line[23]))
+            length = if_string(str(line[17]))
+            width = if_string(str(line[18]))
+            insert_sql = """
+                         INSERT INTO ship_static_data VALUES ('%d', '%d', '%d', '%s', '%s', '%s', null, '%s', '%s', '%s',
+                         '%s', '%f', '%f', '%f', '%f', '%f', null, null)
+                         """ % (ssd_id, int(float(mmsi)), int(float(imo)), line[1], line[2], line[7], line[11], line[13], line[3],
+                                line[4], float(tonnage), float(dwt), float(monitor_rate), float(length),
+                                float(width))
+            ssd_id += 1
+            print(ssd_id)
+            cur.execute(insert_sql)
+        except Exception as e:
+            error_count += 1
+            print(e)
+
+    print("error count is %d" % error_count)
+    conn.commit()
+    cur.close()
+    conn.close()
+
 def ship_static_opt(file_path):
+    """
+    找到有mmsi数据的船舶基本信息
+    :param file_path:
+    :return:
+    """
     file_ = open(file_path)
     ship_static_list = []
     for line in file_:
@@ -809,6 +864,148 @@ def emergency_ship_mysql():
     conn.commit()
     cur.close()
     conn.commit()
+
+
+def ais_static_mysql():
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    # 创建ais_static表
+    create_sql = """
+                 CREATE TABLE IF NOT EXISTS ship_static_data_eway(
+                 ssde_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY ,
+                 mmsi INT,
+                 create_time DATETIME ,
+                 shiptype VARCHAR(100) ,
+                 IMO VARCHAR(100) ,
+                 callsign VARCHAR(100) ,
+                 ship_length FLOAT ,
+                 ship_width FLOAT ,
+                 pos_type VARCHAR(100) ,
+                 eta VARCHAR(100) ,
+                 draught FLOAT ,
+                 destination VARCHAR(100)
+                 )
+                 """
+    cur.execute(create_sql)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def breth_data_mysql():
+    breth_df = pd.read_excel('/home/qiu/Documents/ys_ais/码头表.xlsx')
+    breth_df = breth_df[~breth_df[u'序号'].isnull()]
+    breth_df = breth_df.fillna(0)
+    breth_array = np.array(breth_df)
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+    bd_id = 5
+    for line in breth_array:
+        breth_name = line[1]
+        breth_length = int(line[2])
+        if ('-' in str(line[3])) & ('万' in str(line[3])):
+            max_dwt = float(line[3].split('万')[0].split('-')[1])
+            min_dwt = float(line[3].split('万')[0].split('-')[0])
+        elif ('-' in str(line[3])) & (not '万' in str(line[3])):
+            max_dwt = float(line[3].split('-')[1])
+            min_dwt = float(line[3].split('-')[0])
+        else:
+            max_dwt = float(line[3])
+            min_dwt = float(line[3])
+        breth_type = line[5]
+        font_depth = float(line[6])
+        roundabout_area = line[7]
+        roundabout_depth = line[8]
+        remarks = line[9]
+
+        insert_sql = """
+                     INSERT INTO breth_data VALUES ('%d', '%s', '%d', '%f', '%f', '%s', '%f', '%s', '%s', '%s')
+                     """ % (bd_id, breth_name, breth_length, min_dwt, max_dwt, breth_type, font_depth,
+                            roundabout_area, roundabout_depth, remarks)
+        cur.execute(insert_sql)
+        bd_id += 1
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def ship_static_eway_mysql():
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    ship_static_df = pd.read_csv('/home/qiu/Documents/unique_static_2016.csv')
+    ship_static_array = np.array(ship_static_df)
+    error_count = 0
+    for line in ship_static_array:
+        try:
+            insert_sql = """
+                                 INSERT INTO ship_static_data_eway(mmsi, create_time, shiptype, IMO, callsign, ship_length, ship_width,
+                                 pos_type, eta, draught, destination, ship_english_name) 
+                                 VALUE('%d', NULL , '%s', '%s', '%s', '%f', '%f', '%s', '%s', '%f', NULL , '%s')
+                                 """ % (int(line[7]), line[9], line[5], line[1], line[6], float(line[12]),
+                                        0.0, line[4], float(line[3]), line[8])
+            # print(insert_sql)
+            cur.execute(insert_sql)
+        except Exception as e:
+            print(e)
+            error_count += 1
+    print("error count is %d" % error_count)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def tb_ship_data_mysql():
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    ship_static_df = pd.read_csv('/home/qiu/Documents/unique_static_2016.csv')
+    print(ship_static_df.head())
+    input("-----------")
+    ship_static_array = np.array(ship_static_df)
+    error_count = 0
+    for line in ship_static_array:
+        try:
+            insert_sql = """
+                         INSERT INTO tb_ship_data(mmsi, imo, ship_callsign, ship_english_name,
+                         shiptype, width, length, eta, draught, destination)
+                         VALUE('%d', NULL , '%s', '%s', '%s', '%f', '%f', '%s', '%s', '%f', NULL , '%s')
+                         """ % (int(line[7]), line[9], line[5], line[1], line[6], float(line[12]),
+                                0.0, line[4], float(line[3]), line[8])
+            # print(insert_sql)
+            cur.execute(insert_sql)
+        except Exception as e:
+            print(e)
+            error_count += 1
+    print("error count is %d" % error_count)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def get_ship_static_mysql():
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+    select_sql = """
+                 SELECT * FROM ship_static_data
+                 """
+    cur.execute(select_sql)
+    ship_static_eway_df = pd.DataFrame(list(cur.fetchall()))
+    ship_static_eway_df.columns = ['ssd_id', 'mmsi', 'imo', 'ship_chinese_name', 'ship_english_name', 'ship_callsign',
+                                   'sea_or_river', 'flag', 'sail_area', 'ship_port', 'ship_type', 'tonnage', 'dwt',
+                                   'monitor_rate', 'length', 'width', 'wind_resistance_level', 'height_above_water']
+    print(ship_static_eway_df.head())
 
 
 if __name__ == "__main__":
@@ -983,17 +1180,17 @@ if __name__ == "__main__":
     #                             str(round(float(row[0]), 4)) + "*" + str(round(float(row[1]), 4)) + ";"
     #     print(coordinate_string)
 
-    # # ----------------------------------------------------
-    # # 获取最新10分钟内，东海大桥的通航情况
+    # ----------------------------------------------------
+    # 获取最新10分钟内，东海大桥的通航情况
     # bridge = Bridge()
-    # ys_ais_10mins = pd.read_csv('/home/qiu/Documents/ys_ais/pre_201606_ys_10mins.csv')
+    # ys_ais_10mins = pd.read_csv('/home/qiu/Documents/ys_ais/pre_201606_ys.csv', header=None)
     # print(ys_ais_10mins)
     # bridge_cross_df = bridge.bridge_main(ys_ais=ys_ais_10mins)
 
-    # ------------------------------------------------------
-    # 应急决策
+    # # ------------------------------------------------------
+    # # 应急决策
     # emergency = Emergency()
-    # emergency.emergency_main(ys_ais_10mins=ys_ais_10mins)
+    # emergency.emergency_main(ys_ais_10mins=data)
 
     # # --------------------------------------------------------
     # # 交通预警
@@ -1035,4 +1232,42 @@ if __name__ == "__main__":
     # df.to_csv('/home/qiu/Documents/ys_ais/all_ship_static_ys_opt.csv', index=None)
     # print(df.head())
 
-    emergency_ship_mysql()
+    # get_ship_static_mysql()
+
+    # from email.mime.text import MIMEText
+    #
+    # msg = MIMEText('hello，send by python...', 'plain', 'utf-8')
+    #
+    # # 发送邮箱地址
+    # from_addr = 'qiujiayu0212@163.com'
+    #
+    # # 邮箱授权码，非登陆密码
+    # password = 'yingming0403'
+    #
+    # # 收件箱地址
+    # to_addr = 'sohu.321@qq.com'
+    #
+    # # smtp服务器
+    # smtp_server = 'smtp.163.com'
+    # # 发送邮箱地址
+    # msg['From'] = from_addr
+    # # 收件箱地址
+    # msg['To'] = to_addr
+    # # 主题
+    # msg['Subject'] = 'the frist mail'
+    # import smtplib
+    #
+    # server = smtplib.SMTP(smtp_server, 25)
+    #
+    # server.set_debuglevel(1)
+    #
+    # print(from_addr)
+    # print(password)
+    # server.login(from_addr, password)
+    #
+    # a = server.sendmail(from_addr, [to_addr], msg.as_string())
+    # print(a)
+    #
+    # server.quit()
+
+    tb_ship_data_mysql()

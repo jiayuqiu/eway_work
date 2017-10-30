@@ -99,10 +99,6 @@ if __name__ == "__main__":
         print("--------------------------------------")
         time.sleep(600)
 
-
-
-
-
     # # ys_ais_df = pd.read_csv("/home/qiu/Documents/ys_ais/pre_201606_ys.csv", header=None)
     # # ys_ais_df.columns = ["unique_ID", "acquisition_time", "target_type", "data_supplier", "data_source",
     # #                      "status", "longitude", "latitude", "area_ID", "speed", "conversion", "cog",

@@ -7,8 +7,12 @@ import time
 
 class Port(object):
     def __init__(self):
-        self.port_max_wind = 10
-        self.port_min_njd = 1000
+        self.general_max_wind = 8
+        self.general_min_njd = 2000
+        self.general_max_dwt = 16
+        self.lng_oil_max_wind = 7
+        self.lng_oil_min_njd = 1500
+        self.lng_oil_max_dwt = 15
 
     def get_newest_weather_conf(self):
         """
@@ -32,21 +36,22 @@ class Port(object):
         :return: 未进行判断的靠离泊的数据，类型：data frame
         """
         conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
-                               db='dbtraffic')
+                               db='dbtraffic', charset='utf8')
         cur = conn.cursor()
 
         select_sql = """
-                     SELECT * from ship_port_data
+                     SELECT * from ship_port_data WHERE berthing_control IS NULL 
                      """
 
         cur.execute(select_sql)
         # 获取待计算的数据
-        ship_port_data = []
-        for row in cur.fetchall():
-            brething_control = int(row[13])
-            # 找出没判断的数据
-            if brething_control == 0:
-                ship_port_data.append(list(row))
+        ship_port_data = list(cur.fetchall())
+        # ship_port_data = []
+        # for row in cur.fetchall():
+        #     brething_control = int(row[13])
+        #     # 找出没判断的数据
+        #     if brething_control == 0:
+        #         ship_port_data.append(list(row))
         cur.close()
         conn.close()
         return ship_port_data
@@ -62,10 +67,11 @@ class Port(object):
                                db='dbtraffic')
         cur = conn.cursor()
 
-        for line in ship_port_data:
+        ship_port_data_len = len(ship_port_data)
+        for index in range(ship_port_data_len):
             update_sql = """
-                         UPDATE ship_port_data SET berthing_control=%d WHERE ipd_id=%d
-                         """ % (breth_control, line[0])
+                         UPDATE ship_port_data SET berthing_control='%d' WHERE ipd_id='%d'
+                         """ % (breth_control[index], ship_port_data[index, 0])
             cur.execute(update_sql)
         conn.commit()
         cur.close()
@@ -77,27 +83,50 @@ class Port(object):
         :return:
         """
         ship_port_data = self.get_port_data()
+        ship_port_array = np.array(ship_port_data)
+        berthing_control_list = []
         if len(ship_port_data) > 1:
             newest_weather_array = np.array(self.get_newest_weather_conf())
-            print(newest_weather_array)
             # 初始化风力、能见度条件
             wind_port_bool = False
             njd_port_bool = False
+            dwt_port_bool = False
 
             newest_max_avg_wind = newest_weather_array[0, 4]
             newest_min_njd = newest_weather_array[0, 6]
 
-            if newest_max_avg_wind < self.port_max_wind:
-                wind_port_bool = True
+            for line in ship_port_array:
+                # 判断是否是LNG或油船码头
+                if ('LNG' in line[6]) | ('油' in line[6]):
+                    if newest_max_avg_wind < self.lng_oil_max_wind:
+                        wind_port_bool = True
 
-            if newest_min_njd > self.port_min_njd:
-                njd_port_bool = True
+                    if newest_min_njd > self.lng_oil_min_njd:
+                        njd_port_bool = True
 
-            if wind_port_bool & njd_port_bool:
-                breth_control = 1
-            else:
-                breth_control = 2
-            self.update_port_data(breth_control, ship_port_data)
+                    if line[4]:
+                        if line[4] < self.lng_oil_max_dwt:
+                            dwt_port_bool = True
+                    else:
+                        dwt_port_bool = True
+                else:
+                    if newest_max_avg_wind < self.general_max_wind:
+                        wind_port_bool = True
+
+                    if newest_min_njd > self.general_min_njd:
+                        njd_port_bool = True
+
+                    if line[4]:
+                        if line[4] < self.general_max_dwt:
+                            dwt_port_bool = True
+                    else:
+                        dwt_port_bool = True
+
+                if wind_port_bool & njd_port_bool & dwt_port_bool:
+                    berthing_control_list.append(1)
+                else:
+                    berthing_control_list.append(2)
+            self.update_port_data(berthing_control_list, ship_port_array)
 
 if __name__ == "__main__":
     # --------------------------------------------------------

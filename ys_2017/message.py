@@ -5,6 +5,9 @@ import urllib
 import time
 import pymysql
 
+from email.mime.text import MIMEText
+import smtplib
+
 class sendMsg(object):
     """短信发送类"""
     #---------------------------------------------------------------------
@@ -75,7 +78,7 @@ class sendMsg(object):
         for row in cursor.fetchall():
             mes_status = row["mes_status"]
             mes_recv_type = row["mes_recv_type"]
-            if (mes_status == '1') & (mes_recv_type == '1'):
+            if ((mes_status == '1') | (mes_status == '-1')) & (mes_recv_type == '1'):
                 if row["mes_entity"]:
                     print(row)
                     send_text = self._filter_label(row["mes_content"])
@@ -106,7 +109,7 @@ class sendMsg(object):
         cursor.close()
         connection.close()
 
-    def ys_send_message(self, interval=60):
+    def ys_send_message(self):
         """
         从数据库中获取需要发送的短信列表并发送
         :param interval: 读取数据库中需要发送短信的列表间隔时间，单位：秒，类型：int
@@ -115,16 +118,113 @@ class sendMsg(object):
         # mes_subject -- 信息标题; mes_content -- 信息内容；mes_time -- 信息发送时间;
         # mes_entity -- 信息接受体（手机或者e-mail）; mes_manage_name -- 操作人姓名; mes_manage_id -- 操作人id;
         # mes_recv_type -- 信息接受类型（1-短信，2-邮件）; mes_status -- 1：待发送，2：已发送;
-        while True:
-            send_result_list = self._send_msg()
-            self._update_t_message(send_result_list)
-            print("sleeping...")
-            time.sleep(interval)
+        send_result_list = self._send_msg()
+        self._update_t_message(send_result_list)
+
+
+class sendEmail(object):
+    def __init__(self):
+        self.from_addr = 'qiujiayu0212@163.com'
+        self.password = 'yingming0403'
+        self.smtp_server = 'smtp.163.com'
+
+    def send_email(self, to_addr, warning_str):
+        """
+        邮件发送功能函数
+        :param to_addr: 收件人邮件
+        :param warning_str: 发送信息
+        :param subject_str: 主题信息
+        :return:
+        """
+        msg = MIMEText(warning_str, 'plain', 'utf-8')
+
+        # 发送邮箱地址
+        from_addr = self.from_addr
+        # 邮箱授权码，非登陆密码
+        password = self.password
+        # 收件箱地址
+        to_addr = to_addr
+        # smtp服务器
+        smtp_server = self.smtp_server
+        # 发送邮箱地址
+        msg['From'] = from_addr
+        # 收件箱地址
+        msg['To'] = to_addr
+        # 主题
+        msg['Subject'] = '洋山预警邮件'
+
+        server = smtplib.SMTP(smtp_server, 25)
+
+        server.set_debuglevel(1)
+
+        try:
+            server.login(from_addr, password)
+            server.sendmail(from_addr, [to_addr], msg.as_string())
+            server.quit()
+            return 2
+        except Exception as e:
+            print(e)
+            return -1
+
+    def _update_t_message(self, send_result_list):
+        """
+        更新t_message表格中的发送状态
+        :param send_result_list: 短信发送结果，类型：list
+        :return:
+        """
+        # 连接数据库
+        connection = pymysql.connect(host='192.168.1.63',
+                                     user='root',
+                                     password='traffic170910@0!7!@#3@1',
+                                     db='dbtraffic',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        cursor = connection.cursor()
+        for result in send_result_list:
+            update_sql = """UPDATE t_message SET mes_status=%s WHERE mes_id=%s """ % (result[1], result[0])
+            cursor.execute(update_sql)
+        connection.commit()
+        cursor.close()
+        connection.close()
+
+    def send_email_main(self):
+        """
+        发送邮件主函数
+        :return:
+        """
+        # 连接数据库
+        connection = pymysql.connect(host='192.168.1.63',
+                                     user='root',
+                                     password='traffic170910@0!7!@#3@1',
+                                     db='dbtraffic',
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        cursor = connection.cursor()
+        select_sql = """SELECT * FROM t_message"""
+        cursor.execute(select_sql)
+
+        # 初始化输出列表
+        send_result_list = []
+        for row in cursor.fetchall():
+            mes_status = row["mes_status"]
+            mes_recv_type = row["mes_recv_type"]
+            if ((mes_status == '1') | (mes_status == '-1')) & (mes_recv_type == '2'):
+                if row["mes_entity"]:
+                    if '@' in row["mes_entity"]:
+                        print(row)
+                        send_text = row["mes_content"]
+                        send_status = self.send_email(to_addr=row['mes_entity'], warning_str=send_text)
+                        send_result_list.append([row["mes_id"], send_status])
+                    else:
+                        send_result_list.append([row["mes_id"], -1])
+        self._update_t_message(send_result_list)
+        cursor.close()
+        connection.close()
+        return send_result_list
+
 
 
 if __name__ == '__main__':
-    sendMsg = sendMsg()
-
     # phone = "15001919669;13761596164;18217758960"
     # # weatherReport = """
     # # 今日最大风力为9级，今日最小能见度为20000米
@@ -132,6 +232,14 @@ if __name__ == '__main__':
     # # """
     # weatherReport = """短信接口测试"""
     # text = "【洋山港海事局】%s" % weatherReport
+    sendMsg = sendMsg()
+    sendEmail = sendEmail()
 
-    # 调接口发短信
-    sendMsg.ys_send_message()
+    while True:
+        # 发送邮件
+        sendEmail.send_email_main()
+        # 发送短信
+        sendMsg.ys_send_message()
+        print(time.strftime('%Y-%m-%d %H:%M:%S'))
+        print("--------------------------------------")
+        time.sleep(60)

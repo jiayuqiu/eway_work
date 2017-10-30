@@ -10,8 +10,41 @@ from ais_analysis import AIS
 
 class Bridge(object):
     def __init__(self):
-        self.ship_static_df = pd.read_csv('/home/qiu/Documents/ys_ais/all_ship_static_ys_opt.csv')
-        self.ship_static_df = self.ship_static_df[~self.ship_static_df['MMSI'].isnull()]
+        print('loading ship static data...')
+        # 链接数据库
+        conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                               db='dbtraffic', charset='utf8')
+        cur = conn.cursor()
+        select_sql_eway = """
+                         SELECT * FROM ship_static_data_eway
+                         """
+        cur.execute(select_sql_eway)
+        self.ship_static_eway_array = np.array(list(cur.fetchall()))
+        for index in range(len(self.ship_static_eway_array)):
+            if self.ship_static_eway_array[index, 11]:
+                self.ship_static_eway_array[index, 11] = self.ship_static_eway_array[index, 11].replace(' ', '')
+
+        self.ship_static_eway_df = pd.DataFrame(self.ship_static_eway_array)
+        self.ship_static_eway_df.columns = ['mmsi', 'create_time', 'ship_type', 'imo', 'callsign',
+                                            'ship_length', 'ship_width', 'pos_type', 'eta', 'draught', 'destination',
+                                            'ship_name']
+
+        select_sql = """
+                     SELECT * FROM ship_static_data
+                     """
+        cur.execute(select_sql)
+        self.ship_static_df = pd.DataFrame(list(cur.fetchall()))
+        self.ship_static_df.columns = ['ssd_id', 'mmsi', 'imo', 'ship_chinese_name', 'ship_english_name', 'ship_callsign',
+                                       'sea_or_river', 'flag', 'sail_area', 'ship_port', 'ship_type', 'tonnage', 'dwt',
+                                       'monitor_rate', 'length', 'width', 'wind_resistance_level', 'height_above_water']
+        # self.ship_static_df = pd.read_csv('/home/qiu/Documents/ys_ais/all_ship_static_ys_opt.csv')
+        self.ship_static_df = self.ship_static_df[~self.ship_static_df['mmsi'].isnull()]
+
+        self.ship_static_merge = pd.merge(self.ship_static_eway_df, self.ship_static_df, how='outer',
+                                          left_on='ship_name', right_on='ship_english_name').fillna(0)
+        cur.close()
+        conn.close()
+        print('finish loading...')
 
     def bridge_cross_poly(self, ys_ais):
         """
@@ -95,6 +128,7 @@ class Bridge(object):
         conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
                                db='dbtraffic', charset='utf8')
         cur = conn.cursor()
+        print(inside_poly_df)
         inside_poly_array = np.array(inside_poly_df)
 
         hole_id_list = range(6)
@@ -118,10 +152,10 @@ class Bridge(object):
         for line in inside_poly_array:
             bridge_history_update_sql = """
                                         INSERT INTO bridge_history(mmsi, ship_chinese_name, ship_type,
-                                        bridge_hole, is_cross, create_time, reason) 
-                                        VALUE('%s', '%s', '%s', '%s', '%d', '%s', '%s')""" \
+                                        bridge_hole, is_cross, create_time, reason, dwt, draught) 
+                                        VALUE('%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%f')""" \
                                         % (line[0], line[5], line[4], line[1], line[2], create_time,
-                                           line[3])
+                                           line[3], float(line[6]), float(line[7]))
             # print(bridge_history_update_sql)
             cur.execute(bridge_history_update_sql)
 
@@ -172,29 +206,47 @@ class Bridge(object):
                     if not bridge_cross_njd_bool:
                         bool_num = 0
                         reason = reason + "能见度条件不符合;"
+                    if poly_id == 5:
+                        bool_num = 0
+                        reason = "违规通航孔"
                     inside_poly_mmsi_list.append([int(ais_row[0]), poly_id, bool_num,
                                                   reason])
         inside_poly_df = pd.DataFrame(inside_poly_mmsi_list, columns=['mmsi', 'hole_id', 'if_cross', 'reason'])
         inside_poly_df = inside_poly_df.drop_duplicates()
         shiptype_list = []
         chinese_name = []
+        dwt_list = []
+        draught_list = []
         for index, value in inside_poly_df.iterrows():
-            tmp_ship_static = self.ship_static_df[self.ship_static_df['MMSI'] == int(value['mmsi'])]
+            tmp_ship_static = self.ship_static_df[self.ship_static_df['mmsi'] == int(value['mmsi'])]
+            # tmp_ship_static_ewary = self.ship_static_eway_df[self.ship_static_eway_df['mmsi'] == int(value['mmsi'])]
+            tmp_ship_static_merge = self.ship_static_merge[self.ship_static_merge['mmsi_x'] == int(value['mmsi'])]
             if len(tmp_ship_static) > 0:
                 shiptype_list.append(tmp_ship_static.iloc[0, 4])
                 chinese_name.append(tmp_ship_static.iloc[0, 1])
+                dwt_list.append(tmp_ship_static.iloc[0, 12])
+                draught_list.append(tmp_ship_static_merge.iloc[0, 24])
             else:
-                shiptype_list.append('other')
-                chinese_name.append('none')
+                if len(tmp_ship_static_merge) > 0:
+                    shiptype_list.append('其他')
+                    chinese_name.append(tmp_ship_static_merge.iloc[0, 11])
+                    draught_list.append(tmp_ship_static_merge.iloc[0, 9])
+                    dwt_list.append(tmp_ship_static_merge.iloc[0, 24])
+                else:
+                    shiptype_list.append('其他')
+                    chinese_name.append('暂无')
+                    draught_list.append(0)
+                    dwt_list.append(0)
         inside_poly_df['ship_type'] = shiptype_list
         inside_poly_df['chinese_name'] = chinese_name
+        inside_poly_df['dwt'] = dwt_list
+        inside_poly_df['draught'] = draught_list
         self.inside_poly_mysql(inside_poly_df)
 
 if __name__ == "__main__":
     # ----------------------------------------------------
     # 获取最新10分钟内，东海大桥的通航情况
     while True:
-
         ais = AIS()
         ys_ais_10mins = ais.load_newest_ais()
 
@@ -202,5 +254,5 @@ if __name__ == "__main__":
         bridge_cross_df = bridge.bridge_main(ys_ais=ys_ais_10mins)
         print(time.strftime('%Y-%m-%d %H:%M:%S'))
         print('----------------------------------')
-        time.sleep(600)
+        time.sleep(300)
 

@@ -234,7 +234,7 @@ class AIS(object):
 
         # 获取最近10分钟的AIS数据
         select_sql = """
-                     SELECT * FROM ais_org WHERE create_time>='%s'
+                     SELECT * FROM ais_dynamic WHERE create_time>='%s'
                      """ % str_time
         cur.execute(select_sql)
         ais_org_list = list(cur.fetchall())
@@ -242,25 +242,13 @@ class AIS(object):
         # 解析获取到的AIS数据
         ais_list = []
         for row in ais_org_list:
-            ais_string = row[1]
+            mmsi = int(row[1])
             create_time = row[2]
             time_array = time.strptime(str(create_time), "%Y-%m-%d %H:%M:%S")
             time_stamp = time.mktime(time_array)
-            try:
-                msg_body = ais_string.split(',')[-2]
-                if (len(msg_body) != 0) & (ais_string[0] == '!'):
-                    if msg_body[0] == '1':
-                        msg_ascii = self.ais_analysis.str_to_ascii(msg_body)
-
-                        mmsi = int(self.ais_analysis.python_substring(msg_ascii, 8, 30), 2)
-                        longitude = int(self.ais_analysis.python_substring(msg_ascii, 62, 27), 2) / 600000
-                        latitude = int(self.ais_analysis.python_substring(msg_ascii, 90, 26), 2) / 600000
-                        ais_list.append([mmsi, int(time_stamp), longitude, latitude])
-                        # time_stamp = int(self.ascii_string.python_substring(msg_ascii, 138, 5), 2)
-
-            except Exception as e:
-                print(e)
-                # print(e)
+            longitude = float(row[3])
+            latitude = float(row[4])
+            ais_list.append([mmsi, time_stamp, longitude, latitude])
         ais_df = pd.DataFrame(ais_list, columns=["unique_ID", "acquisition_time", "longitude", "latitude"])
         return ais_df
 
