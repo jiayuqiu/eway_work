@@ -5,46 +5,12 @@ import numpy as np
 import time
 import pymysql
 
-from base_func import getDist, getFileNameList, is_line_cross, point_poly
+from base_func import getDist, getFileNameList, is_line_cross, point_poly, tb_pop_mysql, get_ship_static_mysql
 from ais_analysis import AIS
 
 class Bridge(object):
     def __init__(self):
-        print('loading ship static data...')
-        # 链接数据库
-        conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
-                               db='dbtraffic', charset='utf8')
-        cur = conn.cursor()
-        select_sql_eway = """
-                         SELECT * FROM ship_static_data_eway
-                         """
-        cur.execute(select_sql_eway)
-        self.ship_static_eway_array = np.array(list(cur.fetchall()))
-        for index in range(len(self.ship_static_eway_array)):
-            if self.ship_static_eway_array[index, 11]:
-                self.ship_static_eway_array[index, 11] = self.ship_static_eway_array[index, 11].replace(' ', '')
-
-        self.ship_static_eway_df = pd.DataFrame(self.ship_static_eway_array)
-        self.ship_static_eway_df.columns = ['mmsi', 'create_time', 'ship_type', 'imo', 'callsign',
-                                            'ship_length', 'ship_width', 'pos_type', 'eta', 'draught', 'destination',
-                                            'ship_name']
-
-        select_sql = """
-                     SELECT * FROM ship_static_data
-                     """
-        cur.execute(select_sql)
-        self.ship_static_df = pd.DataFrame(list(cur.fetchall()))
-        self.ship_static_df.columns = ['ssd_id', 'mmsi', 'imo', 'ship_chinese_name', 'ship_english_name', 'ship_callsign',
-                                       'sea_or_river', 'flag', 'sail_area', 'ship_port', 'ship_type', 'tonnage', 'dwt',
-                                       'monitor_rate', 'length', 'width', 'wind_resistance_level', 'height_above_water']
-        # self.ship_static_df = pd.read_csv('/home/qiu/Documents/ys_ais/all_ship_static_ys_opt.csv')
-        self.ship_static_df = self.ship_static_df[~self.ship_static_df['mmsi'].isnull()]
-
-        self.ship_static_merge = pd.merge(self.ship_static_eway_df, self.ship_static_df, how='outer',
-                                          left_on='ship_name', right_on='ship_english_name').fillna(0)
-        cur.close()
-        conn.close()
-        print('finish loading...')
+        pass
 
     def bridge_cross_poly(self, ys_ais):
         """
@@ -116,7 +82,7 @@ class Bridge(object):
         newest_weahter_conf_df.columns = ['wp_id', 'pub_date', 'pub_clock', 'src_loc', 'max_avg_wind', 'max_zf_wind',
                                           'min_njd', 'suggest_warn', 'if_conf', 'conf_man', 'conf_level', 'conf_time',
                                           'suggest_njd_warn', 'conf_njd_level', 'if_conf_njd', 'conf_man_njd',
-                                          'conf_time_njd', 'pub_time']
+                                          'conf_time_njd', 'pub_time', 'tmr_max_avg_wind', 'tmr_max_zf_wind']
         return newest_weahter_conf_df
 
     def inside_poly_mysql(self, inside_poly_df):
@@ -156,16 +122,18 @@ class Bridge(object):
                                         VALUE('%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%f')""" \
                                         % (line[0], line[5], line[4], line[1], line[2], create_time,
                                            line[3], float(line[6]), float(line[7]))
-            # print(bridge_history_update_sql)
             cur.execute(bridge_history_update_sql)
-
+            if line[2] == 0:
+                create_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+                tb_pop_mysql(create_time=create_time, warn_type='东海大桥', warn_text='有东海大桥预警，请注意！', if_pop=0)
         conn.commit()
         conn.close()
 
-    def bridge_main(self, ys_ais):
+    def bridge_main(self, ys_ais, ship_static_df):
         """
         每10分钟判断一次，经过东海大桥通航孔的船舶数量
         :param ys_ais: 10分钟洋山水域内的ais数据，类型：data frame
+        :param ship_static_df: 船舶静态数据，类型:data frame
         :return: 1-5号多边形内的船舶数量与mmsi列表
         """
         # 将ais的data frame转换为array
@@ -196,6 +164,8 @@ class Bridge(object):
                     newest_min_njd = newest_weather_conf_df.iloc[0, 6]
                     bridge_cross_wind_bool = (int(bridge_max_wind) > int(newest_avg_max_wind))
                     bridge_cross_njd_bool = (int(bridge_min_njd) < int(newest_min_njd))
+
+                    # 判断是否符合通航条件
                     reason = ""
                     if bridge_cross_wind_bool & bridge_cross_njd_bool:
                         bool_num = 1
@@ -217,26 +187,23 @@ class Bridge(object):
         chinese_name = []
         dwt_list = []
         draught_list = []
+        # 逐行匹配静态数据
         for index, value in inside_poly_df.iterrows():
-            tmp_ship_static = self.ship_static_df[self.ship_static_df['mmsi'] == int(value['mmsi'])]
+            # tmp_ship_static = self.ship_static_df[self.ship_static_df['mmsi'] == int(value['mmsi'])]
             # tmp_ship_static_ewary = self.ship_static_eway_df[self.ship_static_eway_df['mmsi'] == int(value['mmsi'])]
-            tmp_ship_static_merge = self.ship_static_merge[self.ship_static_merge['mmsi_x'] == int(value['mmsi'])]
-            if len(tmp_ship_static) > 0:
-                shiptype_list.append(tmp_ship_static.iloc[0, 4])
-                chinese_name.append(tmp_ship_static.iloc[0, 1])
-                dwt_list.append(tmp_ship_static.iloc[0, 12])
-                draught_list.append(tmp_ship_static_merge.iloc[0, 24])
+            tmp_ship_static_merge = ship_static_df[ship_static_df['mmsi_x'] == int(value['mmsi'])]
+
+            # 查看是否匹配到静态数据
+            if len(tmp_ship_static_merge) > 0:
+                shiptype_list.append(tmp_ship_static_merge.iloc[0, 22])
+                chinese_name.append(tmp_ship_static_merge.iloc[0, 11])
+                draught_list.append(tmp_ship_static_merge.iloc[0, 9])
+                dwt_list.append(tmp_ship_static_merge.iloc[0, 24])
             else:
-                if len(tmp_ship_static_merge) > 0:
-                    shiptype_list.append('其他')
-                    chinese_name.append(tmp_ship_static_merge.iloc[0, 11])
-                    draught_list.append(tmp_ship_static_merge.iloc[0, 9])
-                    dwt_list.append(tmp_ship_static_merge.iloc[0, 24])
-                else:
-                    shiptype_list.append('其他')
-                    chinese_name.append('暂无')
-                    draught_list.append(0)
-                    dwt_list.append(0)
+                shiptype_list.append('其他')
+                chinese_name.append('暂无')
+                draught_list.append(0)
+                dwt_list.append(0)
         inside_poly_df['ship_type'] = shiptype_list
         inside_poly_df['chinese_name'] = chinese_name
         inside_poly_df['dwt'] = dwt_list
@@ -247,11 +214,13 @@ if __name__ == "__main__":
     # ----------------------------------------------------
     # 获取最新10分钟内，东海大桥的通航情况
     while True:
+        ship_static_df = get_ship_static_mysql()
+
         ais = AIS()
         ys_ais_10mins = ais.load_newest_ais()
 
         bridge = Bridge()
-        bridge_cross_df = bridge.bridge_main(ys_ais=ys_ais_10mins)
+        bridge.bridge_main(ys_ais=ys_ais_10mins, ship_static_df=ship_static_df)
         print(time.strftime('%Y-%m-%d %H:%M:%S'))
         print('----------------------------------')
         time.sleep(300)

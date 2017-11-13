@@ -28,6 +28,30 @@ def decode_unicode_references(data):
     return re.sub("&#(\d+)(;|(?=\s))", _callback, str(data))
 
 
+def tb_pop_mysql(create_time, warn_type, warn_text, if_pop):
+    """
+    将预警数据导入表tb_warning_pop
+    :param create_time: 预警创建时间，类型：string
+    :param warn_type: 预警类型，类型：string
+    :param warn_text: 预警内容，类型：string
+    :param if_pop: 0 - 未弹窗
+    :return:
+    """
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    # 数据库插入语句
+    insert_sql = """
+                 INSERT INTO tb_warning_pop(create_time, warn_type, warn_text, if_pop) VALUE ('%s', '%s', '%s', '%d')
+                 """ % (create_time, warn_type, warn_text, if_pop)
+    cur.execute(insert_sql)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
 class Weather(object):
     def __init__(self):
         self.shanghai_url = "http://www.smb.gov.cn/sh/tqyb/qxbg/index.html"
@@ -249,7 +273,7 @@ class Weather(object):
         bs_page_source = BeautifulSoup(page_source, 'html.parser').decode('utf-8')
         root_page_source = lxml.etree.HTML(bs_page_source)
 
-        weather_report_xpath_string = "/html/body/div[2]/div[4]/div[2]/div[1]/div[2]/ul/li[2]/pre"
+        weather_report_xpath_string = "/html/body/div[1]/div[4]/div[2]/div[1]/div[2]/ul/li[2]/pre"
         weather_report_element_list = root_page_source.xpath(weather_report_xpath_string)
         weather_report_element_str = decode_unicode_references(tostring(weather_report_element_list[0]))
         report_string = weather_report_element_str.replace(' ', '').replace('\\r', '')
@@ -259,7 +283,7 @@ class Weather(object):
         cj_report_str = self.cj_report(report_list)
 
         # 获取上海气象报告更新时间
-        pub_time_xpath = '/html/body/div[2]/div[4]/div[2]/div[1]/div[2]/ul/li[1]'
+        pub_time_xpath = '/html/body/div[1]/div[4]/div[2]/div[1]/div[2]/ul/li[1]'
         pub_time_element_list = root_page_source.xpath(pub_time_xpath)
         pub_time_string = decode_unicode_references(tostring(pub_time_element_list[0]))
         pub_date, pub_clock = self.shanghai_pub_time(pub_time_string)
@@ -310,15 +334,20 @@ class Weather(object):
 
         # 从气象报告中获取风力、能见度预警
         zhoushan_newest_pub_date, zhoushan_newest_pub_clock, zhoushan_newest_report = self.get_newest_report('舟山')
-        zhoushan_max_avg_wind, zhoushan_max_zf_wind = self.max_wind(zhoushan_weather[2], "舟山")
+        zhoushan_max_avg_wind, zhoushan_max_zf_wind, zhoushan_tmr_max_avg_wind, zhoushan_tmr_max_zf_wind\
+            = self.max_wind(zhoushan_weather[2], "舟山")
         shanghai_newest_pub_date, shanghai_newest_pub_clock, shanghai_newest_report = self.get_newest_report('上海')
-        shanghai_max_avg_wind, shanghai_max_zf_wind = self.max_wind(shanghai_weather[2], "上海")
+        shanghai_max_avg_wind, shanghai_max_zf_wind, shanghai_tmr_max_avg_wind, shanghai_tmr_max_zf_wind\
+            = self.max_wind(shanghai_weather[2], "上海")
         north_port_newest_pub_date, north_port_newest_pub_clock, north_port_newest_report = self.get_newest_report('北部港区')
-        north_port_max_avg_wind, north_port_max_zf_wind = self.max_wind(north_port_weather[4], "北部港区")
+        north_port_max_avg_wind, north_port_max_zf_wind, north_port_tmr_max_avg_wind, north_port_tmr_max_zf_wind\
+            = self.max_wind(north_port_weather[4], "北部港区")
 
         # 获取最大平均风力、阵风风力
         max_avg_wind = np.max([zhoushan_max_avg_wind, shanghai_max_avg_wind, north_port_max_avg_wind])
         max_zf_wind = np.max([zhoushan_max_zf_wind, shanghai_max_zf_wind, north_port_max_zf_wind])
+        tmr_max_avg_wind = np.max([zhoushan_tmr_max_avg_wind, shanghai_tmr_max_avg_wind, north_port_tmr_max_avg_wind])
+        tmr_max_zf_wind = np.max([zhoushan_tmr_max_zf_wind, shanghai_tmr_max_zf_wind, north_port_tmr_max_zf_wind])
 
         min_njd = north_port_weather[3]
         wind_warning_level, njd_warning_level = self.get_warning(max_avg_wind, max_zf_wind, min_njd)
@@ -365,13 +394,19 @@ class Weather(object):
             pub_date = time.strftime("%Y-%m-%d")
             pub_clock = time.strftime("%H:%M:%S")
             pub_time = time.strftime("%Y-%m-%d %H:%M:%S")
+            # 将气象数据插入weather_conf
             warning_insert_sql = """
                                  INSERT INTO weather_conf(pub_date, pub_clock, max_avg_wind, max_zf_wind, 
-                                 min_njd, suggest_warn, suggest_njd_warn, pub_time) VALUE ('%s', '%s', '%d', '%d', 
-                                 '%d', '%d', '%d', '%s')
+                                 min_njd, suggest_warn, suggest_njd_warn, pub_time, tmr_max_avg_wind, tmr_max_zf_wind)
+                                 VALUE ('%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%d', '%d')
                                  """ % (pub_date, pub_clock, max_avg_wind, max_zf_wind, min_njd, wind_warning_level,
-                                        njd_warning_level, pub_time)
+                                        njd_warning_level, pub_time, tmr_max_avg_wind, tmr_max_zf_wind)
             cur.execute(warning_insert_sql)
+
+            # 判断是否发生预警，若发生预警则插入tb_warning_pop
+            if (wind_warning_level > 0) | (njd_warning_level > 0):
+                create_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+                tb_pop_mysql(create_time=create_time, warn_type='气象', warn_text='有气象预警，请注意！', if_pop=0)
         else:
             print("气象无变化，计算时间:%s" % time.strftime('%Y-%m-%d %H:%M:%S'))
             print("------------------------------------")
@@ -387,6 +422,7 @@ class Weather(object):
         :param report_: 气象报告，类型：string
         :return: 平均风力等级，阵风风力等级
         """
+        # 获取当天的风力数据
         pattern = re.compile(u'今天.*?阵风(.*?)级', re.S)
         items_zf = re.findall(pattern, report_)
 
@@ -409,7 +445,31 @@ class Weather(object):
 
         items_avg = items_E + items_S + items_W + items_N + items_to
 
-        return items_avg, items_zf
+        # 获取第二天的风力数据
+        pattern_tmr_zf = re.compile(u'明天.*?阵风(.*?)级', re.S)
+        items_zf_tmr = re.findall(pattern_tmr_zf, report_)
+
+        pattern_tmr_to = re.compile(u'明天.*?到(.*?)级', re.S)
+        pattern_tmr_east = re.compile(u'明天.*?东风(.*?)级', re.S)
+        pattern_tmr_south = re.compile(u'明天.*?南风(.*?)级', re.S)
+        pattern_tmr_west = re.compile(u'明天.*?西风(.*?)级', re.S)
+        pattern_tmr_north = re.compile(u'明天.*?北风(.*?)级', re.S)
+
+        items_tmr_to = re.findall(pattern_tmr_to, report_)
+        for y in items_tmr_to:
+            for yy in y:
+                if yy.isdigit():
+                    del items_tmr_to[items_tmr_to.index(y)]
+                    break
+
+        items_tmr_E = re.findall(pattern_tmr_east, report_)
+        items_tmr_S = re.findall(pattern_tmr_south, report_)
+        items_tmr_W = re.findall(pattern_tmr_west, report_)
+        items_tmr_N = re.findall(pattern_tmr_north, report_)
+
+        items_tmr_avg = items_tmr_E + items_tmr_S + items_tmr_W + items_tmr_N + items_tmr_to
+
+        return items_avg, items_zf, items_tmr_avg, items_zf_tmr
 
     def get_wind_from_list(self, wind_data):
         """
@@ -494,19 +554,36 @@ class Weather(object):
         """
         # 获取气象报告中的最大风力数据
         if (src_loc == "舟山") | (src_loc == "上海"):
-            avg_wind_list, zf_wind_list = self.get_wind_data(report)
+            avg_wind_list, zf_wind_list, tmr_avg_wind_list, tmr_zf_wind_list = self.get_wind_data(report)
+            # 当天最大平均风力
             max_avg_wind = self.get_wind_from_list(avg_wind_list)
+
+            # 当天最大阵风
             if len(zf_wind_list) > 0:
                 max_zf_wind = self.get_wind_from_list(zf_wind_list)
             else:
                 max_zf_wind = 0
-            return max_avg_wind, max_zf_wind
+
+            # 第二天最大平均风力
+            if len(tmr_avg_wind_list) > 0:
+                tmr_max_avg_wind = self.get_wind_from_list(tmr_avg_wind_list)
+            else:
+                tmr_max_avg_wind = 0
+
+            # 第二天最大阵风
+            if len(tmr_zf_wind_list) > 0:
+                tmr_max_zf_wind = self.get_wind_from_list(tmr_zf_wind_list)
+            else:
+                tmr_max_zf_wind = 0
+
+            return max_avg_wind, max_zf_wind, tmr_max_avg_wind, tmr_max_zf_wind
 
         # 获取北部港区气象报告
         if src_loc == "北部港区":
             max_avg_wind, min_njd = self.get_wind_njd_north_port_report(report)
             max_zf_wind = 0
-            return max_avg_wind, max_zf_wind
+            tmr_max_avg_wind, tmr_max_zf_wind = 0, 0
+            return max_avg_wind, max_zf_wind, tmr_max_avg_wind, tmr_max_zf_wind
 
         # zhoushan_newest_data = self.get_newest_report('舟山')
         # zhoushan_avg_wind_list, zhoushan_zf_wind_list = self.get_wind_data(zhoushan_newest_data[2])

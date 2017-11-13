@@ -8,6 +8,7 @@ import re
 import time
 import lxml
 import pymysql
+import math
 
 
 from lxml.html import tostring
@@ -469,6 +470,33 @@ def fit_sub_channel(sub_channel_ais, interval_time=10*60):
     return fit_points_df
 
 
+def fit_sub_channel_opt(sub_channel_ais, interval_time=1*60):
+    """
+    拟合子航道曲线
+    :param sub_channel_ais: 子航道的AIS数据，类型：data frame
+    :param interval_time: 间隔时间（默认10分钟），单位：秒，类型：int
+    :return: 由n个点组成的点组成的三维分段直线，类型：data frame
+    """
+    # 根据间隔时间，获取子航道每条数据所处第几段
+    sub_channel_ais["partition"] = sub_channel_ais["acquisition_time"] // interval_time
+
+    # 获取分段列表
+    partition_list = list(set(sub_channel_ais["partition"]))
+    fit_points_list = []
+
+    for partition in partition_list:
+        partition_ais = sub_channel_ais[sub_channel_ais["partition"].isin(range(partition-2, partition+3))]
+        mean_lon = np.mean(partition_ais["longitude"])
+        mean_lat = np.mean(partition_ais["latitude"])
+        mean_time = np.mean(partition_ais["acquisition_time"])
+        fit_points_list.append([mean_lon, mean_lat, mean_time])
+
+    # 返回拟合函数的点
+    fit_points_df = pd.DataFrame(fit_points_list)
+    fit_points_df.columns = ["longitude", "latitude", "acquisition_time"]
+    return fit_points_df
+
+
 def filter_moor_ship(sub_channel_ais, interval_lon=0.5):
     """
     过滤子航道内停泊的船舶ais数据
@@ -491,6 +519,32 @@ def filter_moor_ship(sub_channel_ais, interval_lon=0.5):
         else:
             pass
     return filter_mmsi_list
+
+
+def filter_low_speed_ship(sub_channel_ais):
+    """
+    在航道拟合时，删去噪声数据
+    :param sub_channel_ais: 子航道内的ais数据，类型：data frame
+    :return: 删去噪声后的数据
+    """
+    speed_list = []
+    sub_channel_ais_gdf = sub_channel_ais.groupby('unique_ID')
+    for mmsi, value in sub_channel_ais_gdf:
+        print(mmsi)
+        tmp_speed_list = []
+        value_array = np.array(value)
+        value_array = value_array[value_array[:, 1].argsort()]
+        for index in range(len(value_array) - 1):
+            dst = getDist(lon1=value_array[index, 2], lat1=value_array[index, 3],
+                          lon2=value_array[index+1, 2], lat2=value_array[index+1, 3], )
+            deta_time = value_array[index+1, 1] - value_array[index, 1]
+            if deta_time == 0:
+                deta_time += 1
+            avg_speed = dst / deta_time
+            tmp_speed_list.append(avg_speed)
+        speed_list.append([mmsi, np.mean(tmp_speed_list)])
+    return speed_list
+
 
 
 def filter_point_before_circle(fit_line_df):
@@ -895,6 +949,31 @@ def ais_static_mysql():
     conn.close()
 
 
+def tb_warning_pop_mysql():
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    # 创建ais_static表
+    create_sql = """
+                 CREATE TABLE IF NOT EXISTS tb_warning_pop(
+                 twp_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY ,
+                 create_time DATETIME,
+                 wind_warning_text VARCHAR(100),
+                 njd_warning_text VARCHAR(100),
+                 ship_port_warning_text VARCHAR(100),
+                 bridge_warning_text VARCHAR(100),
+                 traffic_warning_text VARCHAR(100), 
+                 extend TEXT
+                 )
+                 """
+    cur.execute(create_sql)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
 def breth_data_mysql():
     breth_df = pd.read_excel('/home/qiu/Documents/ys_ais/码头表.xlsx')
     breth_df = breth_df[~breth_df[u'序号'].isnull()]
@@ -1008,6 +1087,41 @@ def get_ship_static_mysql():
     print(ship_static_eway_df.head())
 
 
+def drop_same_emergency_ship():
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+    select_sql = """
+                     SELECT * FROM emergency_ship
+                     """
+    cur.execute(select_sql)
+
+    emergency_ship_df = pd.DataFrame(list(cur.fetchall()))
+    emergency_ship_df = emergency_ship_df.drop_duplicates()
+    emergency_ship_array = np.array(emergency_ship_df)
+
+    inserted_mmsi_list = []
+    count = 800
+    for line in emergency_ship_array:
+        insert_sql = """
+                     INSERT INTO emergency_ship VALUES ('%s', '%s', null, null, null, null, '%s', '%s', '%s', null, null, 
+                     '%s', '%s', null, null, '%s', '%s', '%s', '%s', '%s', '%s', 
+                     '%s', '%s', '%s', '%s', '%s', null, '%s', '%s', '%s', '%s', 
+                     null, '%s', '%s', '%s', '%s', '%s', '%s')
+                     """ % (count, line[1], line[6], line[7], line[8],
+                            line[11],line[12], line[15], line[16], line[17], line[18], line[19], line[20],
+                            line[21],line[22], line[23], line[24], line[25], line[27], line[28], line[29], line[30],
+                            line[32], line[33], line[34], line[35], line[36], line[37])
+        count += 1
+        if not line[1] in inserted_mmsi_list:
+            cur.execute(insert_sql)
+            inserted_mmsi_list.append(line[1])
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
 if __name__ == "__main__":
     # # --------------------------------------------------------------------------
     # # 获取洋山水域内AIS数据
@@ -1097,18 +1211,25 @@ if __name__ == "__main__":
     # # ------------------------------------------------
     # # 子航道拟合
     # # 122156281, 30551332, 7101
-    # sub_channel_ais = pd.read_csv("/Users/qiujiayu/data/new_sub_channel_ais_west_east.csv")
-    # # print(sub_channel_ais.head())
-    # # filter_mmsi = sub_channel_ais[(sub_channel_ais["acquisition_time"] == 3474)]
-    # # print(filter_mmsi)
-    # filter_mmsi = filter_moor_ship(sub_channel_ais)
-    # print((filter_mmsi))
-    # input("==============")
-    # filter_mmsi.extend([6, 31, 56])
-    # sub_channel_ais = sub_channel_ais[~sub_channel_ais["unique_ID"].isin(filter_mmsi)]
-    # sub_channel_ais.to_csv("/Users/qiujiayu/data/new_west_east_ais_paint.csv", index=None)
-    # fit_channel_df = fit_sub_channel(sub_channel_ais)
-    # fit_channel_df.to_csv("/Users/qiujiayu/data/new_west_east_fit_line.csv", index=None)
+    # sub_channel_ais = pd.read_csv("/home/qiu/Documents/ys_ais/new_sub_channel_ais_west_east.csv")
+    # # print(sub_channel_ais[(sub_channel_ais['longitude'] == 122.216003) | (sub_channel_ais['acquisition_time'] == 1585)])
+    # # input("---------1-------------")
+    # print(sub_channel_ais.head())
+    # mmsi_speed_list = filter_low_speed_ship(sub_channel_ais)
+    # mmsi_speed_df = pd.DataFrame(mmsi_speed_list, columns=['unique_ID', 'avg_speed'])
+    # # filter_mmsi.extend(filter_moor_ship(sub_channel_ais))
+    # print(mmsi_speed_df)
+    # print(np.mean(mmsi_speed_df['avg_speed']))
+    # filter_mmsi = list(mmsi_speed_df[mmsi_speed_df['avg_speed'] > 0.177485]['unique_ID'])
+    # filter_mmsi.extend([622, 1004])
+    # input("------------------------")
+    # # keep_mmsi = sub_channel_ais[(sub_channel_ais['longitude'] > 122.4) &
+    # #                             (sub_channel_ais['acquisition_time'] > 5000)]['unique_ID']
+    # # print(list(set(keep_mmsi)))
+    # sub_channel_ais_filtered = sub_channel_ais[~sub_channel_ais["unique_ID"].isin(list(set(filter_mmsi)))]
+    # sub_channel_ais_filtered.to_csv("/home/qiu/Documents/ys_ais/new_west_east_paint_data.csv", index=None)
+    # fit_channel_df = fit_sub_channel_opt(sub_channel_ais_filtered)
+    # fit_channel_df.to_csv("/home/qiu/Documents/ys_ais/交通预警优化数据/opt_west_east_fit_line.csv", index=None)
     # print(fit_channel_df)
 
     # # ----------------------------------------------------------------
@@ -1270,4 +1391,4 @@ if __name__ == "__main__":
     #
     # server.quit()
 
-    tb_ship_data_mysql()
+    drop_same_emergency_ship()

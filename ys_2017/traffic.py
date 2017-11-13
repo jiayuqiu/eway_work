@@ -5,28 +5,13 @@ import pandas as pd
 import time
 import pymysql
 
-from base_func import getDist
+from base_func import getDist, tb_pop_mysql, get_ship_static_mysql
 from ais_analysis import AIS
+
 
 class Traffic(object):
     def __init__(self):
-        # 链接数据库
-        conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
-                               db='dbtraffic', charset='utf8')
-        cur = conn.cursor()
-
-        self.fit_line_df = pd.read_csv('/home/qiu/Documents/filtered_fit_line.csv')
-        select_sql = """
-                                 SELECT * FROM ship_static_data
-                                 """
-        cur.execute(select_sql)
-        self.ship_static_df = pd.DataFrame(list(cur.fetchall()))
-        self.ship_static_df.columns = ['ssd_id', 'mmsi', 'imo', 'ship_chinese_name', 'ship_english_name',
-                                       'ship_callsign',
-                                       'sea_or_river', 'flag', 'sail_area', 'ship_port', 'ship_type', 'tonnage', 'dwt',
-                                       'monitor_rate', 'length', 'width', 'wind_resistance_level', 'height_above_water']
-        # self.ship_static_df = pd.read_csv('/home/qiu/Documents/ys_ais/all_ship_static_ys_opt.csv')
-        self.ship_static_df = self.ship_static_df[~self.ship_static_df['mmsi'].isnull()]
+        pass
 
     def predict_circle_ship_number(self, ys_ais):
         """
@@ -43,13 +28,6 @@ class Traffic(object):
         # 将拟合曲线数据转换为矩阵
         fit_line_array = np.array(self.fit_line_df)
         enter_out_array = fit_line_array[fit_line_array[:, 4] == True]
-
-        # # 获取某10分钟时限的ais数据
-        # predict_str_time = np.random.random_integers(str_time, end_time-600)
-        # ys_ais = ys_ais[(ys_ais['acquisition_time'] >= predict_str_time) &
-        #                 (ys_ais['acquisition_time'] <= predict_str_time + 600)]
-        # print("10分钟内，ais数据有%s" % len(ys_ais))
-        # print("开始时间为 %s" % predict_str_time)
 
         # 找到船舶最新一条的轨迹点，与拟合曲线中的点的位置关系
         for mmsi, value in ys_ais.groupby('unique_ID'):
@@ -70,7 +48,7 @@ class Traffic(object):
                     out_time = enter_out_array[enter_out_array[:, 3] == min_dst_channel][-1, 2] - now_time
 
             if (min_dst < 1.5) & (enter_time > 0) & (out_time > 0):
-                predict_res.append([mmsi, int(enter_time // 600), int(out_time // 600)])
+                predict_res.append([int(mmsi), int(enter_time // 600), int(out_time // 600)])
             else:
                 pass
         return predict_res
@@ -138,11 +116,11 @@ class Traffic(object):
         cur.close()
         conn.close()
 
-
-    def traffic_main(self, ys_ais):
+    def traffic_main(self, ys_ais, ship_static_df):
         """
         交通预警主函数
         :param ys_ais: 洋山水域内的ais数据，类型：data frame
+        :param ship_static_df: 船舶静态数据，类型：data frame
         :return:
         """
         predict_res_df = pd.DataFrame(self.predict_circle_ship_number(ys_ais=ys_ais),
@@ -150,14 +128,12 @@ class Traffic(object):
         # predict_res_df.columns = ['mmsi', 'enter_time', 'out_time']
         shiptype_list = []
         for index, value in predict_res_df.iterrows():
-            tmp_ship_static = self.ship_static_df[self.ship_static_df['mmsi'] == value['mmsi']]
+            tmp_ship_static = ship_static_df[ship_static_df['mmsi_x'] == int(value['mmsi'])]
             if len(tmp_ship_static) > 0:
-                shiptype_list.append(tmp_ship_static.iloc[0, 4])
+                shiptype_list.append(tmp_ship_static.iloc[0, 22])
             else:
                 shiptype_list.append('其他')
         predict_res_df['ship_type'] = shiptype_list
-        print(predict_res_df)
-        print("---------------------")
         sum_predict_list = self.sum_predict_res(predict_res_df)
         self.sum_predict_mysql(sum_predict_list)
 
@@ -169,7 +145,9 @@ if __name__ == "__main__":
         ais = AIS()
         ys_ais_10mins = ais.load_newest_ais()
         # ys_ais_10mins = pd.read_csv('/home/qiu/Documents/ys_ais/pre_201606_ys_10mins.csv')
+        ship_static_df = get_ship_static_mysql()
 
         traffic = Traffic()
-        predict_res_df = pd.DataFrame(traffic.traffic_main(ys_ais=ys_ais_10mins))
+        predict_res_df = pd.DataFrame(traffic.traffic_main(ys_ais=ys_ais_10mins, ship_static_df=ship_static_df))
         time.sleep(300)
+        print("-------------------------------------")

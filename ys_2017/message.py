@@ -240,6 +240,4 @@ if __name__ == '__main__':
         sendEmail.send_email_main()
         # 发送短信
         sendMsg.ys_send_message()
-        print(time.strftime('%Y-%m-%d %H:%M:%S'))
-        print("--------------------------------------")
         time.sleep(60)

@@ -3,6 +3,81 @@
 import math
 import numpy as np
 import pandas as pd
+import pymysql
+
+def get_ship_static_mysql():
+    print('loading ship static data...')
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    # 获取我们自己的船舶静态数据
+    select_sql_eway = """
+                             SELECT * FROM ship_static_data_eway
+                             """
+    cur.execute(select_sql_eway)
+    ship_static_eway_array = np.array(list(cur.fetchall()))
+
+    # 逐行去除英文船名中的空格字符
+    for index in range(len(ship_static_eway_array)):
+        if ship_static_eway_array[index, 11]:
+            ship_static_eway_array[index, 11] = ship_static_eway_array[index, 11].replace(' ', '')
+
+    ship_static_eway_df = pd.DataFrame(ship_static_eway_array)
+    ship_static_eway_df.columns = ['mmsi', 'create_time', 'ship_type', 'imo', 'callsign',
+                                   'ship_length', 'ship_width', 'pos_type', 'eta', 'draught', 'destination',
+                                   'ship_name']
+
+    # 获取洋山的船舶档案
+    select_sql = """
+                         SELECT * FROM ship_static_data
+                         """
+    cur.execute(select_sql)
+    ship_static_array = np.array(list(cur.fetchall()))
+
+    # 逐行去除英文船名中的空格字符
+    for index in range(len(ship_static_array)):
+        if ship_static_array[index, 4]:
+            ship_static_array[index, 4] = ship_static_array[index, 4].replace(' ', '')
+    ship_static_df = pd.DataFrame(ship_static_array)
+    ship_static_df.columns = ['ssd_id', 'mmsi', 'imo', 'ship_chinese_name', 'ship_english_name', 'ship_callsign',
+                              'sea_or_river', 'flag', 'sail_area', 'ship_port', 'ship_type', 'tonnage', 'dwt',
+                              'monitor_rate', 'length', 'width', 'wind_resistance_level', 'height_above_water']
+    ship_static_df = ship_static_df[~ship_static_df['mmsi'].isnull()]
+
+    # 合并两个静态数据
+    ship_static_merge = pd.merge(ship_static_eway_df, ship_static_df, how='outer',
+                                 left_on='ship_name', right_on='ship_english_name').fillna(0)
+    cur.close()
+    conn.close()
+    print('finish loading...')
+    return ship_static_merge
+
+
+def tb_pop_mysql(create_time, warn_type, warn_text, if_pop):
+    """
+    将预警数据导入表tb_warning_pop
+    :param create_time: 预警创建时间，类型：string
+    :param warn_type: 预警类型，类型：string
+    :param warn_text: 预警内容，类型：string
+    :param if_pop: 0 - 未弹窗
+    :return:
+    """
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    # 数据库插入语句
+    insert_sql = """
+                 INSERT INTO tb_warning_pop(create_time, warn_type, warn_text, if_pop) VALUE ('%s', '%s', '%s', '%d')
+                 """ % (create_time, warn_type, warn_text, if_pop)
+    cur.execute(insert_sql)
+    conn.commit()
+    cur.close()
+    conn.close()
+
 
 def getFileNameList(filePath):
     import os
