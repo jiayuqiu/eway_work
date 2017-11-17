@@ -11,7 +11,7 @@ from ais_analysis import AIS
 
 class Traffic(object):
     def __init__(self):
-        pass
+        self.fit_line_df = pd.read_csv('/home/qiu/Documents/filtered_fit_line.csv')
 
     def predict_circle_ship_number(self, ys_ais):
         """
@@ -62,12 +62,11 @@ class Traffic(object):
         sum_predict_res_list = []
         for index, value in predict_res.iterrows():
             time_range = list(range(value['enter_time'], value['out_time'] + 1))
-            show_time_range = list(range(1, 7))
+            show_time_range = [1, 3, 5, 7, 9]
             cross_time_list = list(set(time_range).intersection(set(show_time_range)))
             for cross_time in cross_time_list:
                 sum_predict_res_list.append([value['ship_type'], value['mmsi'], cross_time])
         sum_predict_res_array = np.array(sum_predict_res_list)
-
 
         out_predict_res_list = []
         create_time = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -76,7 +75,7 @@ class Traffic(object):
             unique_ship_type_list = list(set(sum_predict_res_array[:, 0]))
             for ship_type in unique_ship_type_list:
                 # tmp_predict_res_array = sum_predict_res_array[sum_predict_res_array[:, 0] == ship_type]
-                for predict_hour in range(1, 7):
+                for predict_hour in [1, 3, 5, 7, 9]:
                     hour_predict_res_array = sum_predict_res_array[(sum_predict_res_array[:, 0] == ship_type) &
                                                                    (sum_predict_res_array[:, 2] == str(predict_hour))]
                     if len(hour_predict_res_array) > 0:
@@ -106,7 +105,7 @@ class Traffic(object):
         conn.commit()
 
         for line in sum_predict_list:
-            print(line)
+            # print(line)
             insert_sql = """
                          INSERT INTO warning_area_data(mmsi_list, warn_time, ship_type, ship_num) VALUE('%s', '%d', 
                          '%s', '%d')
@@ -130,11 +129,15 @@ class Traffic(object):
         for index, value in predict_res_df.iterrows():
             tmp_ship_static = ship_static_df[ship_static_df['mmsi_x'] == int(value['mmsi'])]
             if len(tmp_ship_static) > 0:
-                shiptype_list.append(tmp_ship_static.iloc[0, 22])
+                if tmp_ship_static.iloc[0, 23] == 0:
+                    shiptype_list.append('其他')
+                else:
+                    shiptype_list.append(tmp_ship_static.iloc[0, 23])
             else:
                 shiptype_list.append('其他')
         predict_res_df['ship_type'] = shiptype_list
         sum_predict_list = self.sum_predict_res(predict_res_df)
+        print(sum_predict_list)
         self.sum_predict_mysql(sum_predict_list)
 
 

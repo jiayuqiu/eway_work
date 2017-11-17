@@ -27,7 +27,7 @@ def get_ship_static_mysql():
     ship_static_eway_df = pd.DataFrame(ship_static_eway_array)
     ship_static_eway_df.columns = ['mmsi', 'create_time', 'ship_type', 'imo', 'callsign',
                                    'ship_length', 'ship_width', 'pos_type', 'eta', 'draught', 'destination',
-                                   'ship_name']
+                                   'ship_name', 'standard_ship_english_name']
 
     # 获取洋山的船舶档案
     select_sql = """
@@ -43,7 +43,8 @@ def get_ship_static_mysql():
     ship_static_df = pd.DataFrame(ship_static_array)
     ship_static_df.columns = ['ssd_id', 'mmsi', 'imo', 'ship_chinese_name', 'ship_english_name', 'ship_callsign',
                               'sea_or_river', 'flag', 'sail_area', 'ship_port', 'ship_type', 'tonnage', 'dwt',
-                              'monitor_rate', 'length', 'width', 'wind_resistance_level', 'height_above_water']
+                              'monitor_rate', 'length', 'width', 'wind_resistance_level', 'height_above_water',
+                              'standard_ship_english_name']
     ship_static_df = ship_static_df[~ship_static_df['mmsi'].isnull()]
 
     # 合并两个静态数据

@@ -101,7 +101,7 @@ class Bridge(object):
         create_time = time.strftime("%Y-%m-%d %H:%M:%S")
         for hole_id in hole_id_list:
             value_array = np.array(inside_poly_df[inside_poly_df['hole_id'] == hole_id])
-            non_conformity_array = value_array[value_array[:, 2] == 0]
+            non_conformity_array = value_array[value_array[:, 2] == 2]
             if len(non_conformity_array) == 0:
                 non_conformity_number = 2
             else:
@@ -123,7 +123,7 @@ class Bridge(object):
                                         % (line[0], line[5], line[4], line[1], line[2], create_time,
                                            line[3], float(line[6]), float(line[7]))
             cur.execute(bridge_history_update_sql)
-            if line[2] == 0:
+            if line[2] == 2:
                 create_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
                 tb_pop_mysql(create_time=create_time, warn_type='东海大桥', warn_text='有东海大桥预警，请注意！', if_pop=0)
         conn.commit()
@@ -171,13 +171,13 @@ class Bridge(object):
                         bool_num = 1
                         reason = "符合条件"
                     if not bridge_cross_wind_bool:
-                        bool_num = 0
+                        bool_num = 2
                         reason = reason + "风力条件不符合;"
                     if not bridge_cross_njd_bool:
-                        bool_num = 0
+                        bool_num = 2
                         reason = reason + "能见度条件不符合;"
                     if poly_id == 5:
-                        bool_num = 0
+                        bool_num = 2
                         reason = "违规通航孔"
                     inside_poly_mmsi_list.append([int(ais_row[0]), poly_id, bool_num,
                                                   reason])
@@ -188,17 +188,32 @@ class Bridge(object):
         dwt_list = []
         draught_list = []
         # 逐行匹配静态数据
-        for index, value in inside_poly_df.iterrows():
+        for index in range(len(inside_poly_df)):
             # tmp_ship_static = self.ship_static_df[self.ship_static_df['mmsi'] == int(value['mmsi'])]
             # tmp_ship_static_ewary = self.ship_static_eway_df[self.ship_static_eway_df['mmsi'] == int(value['mmsi'])]
-            tmp_ship_static_merge = ship_static_df[ship_static_df['mmsi_x'] == int(value['mmsi'])]
+            tmp_ship_static_merge = ship_static_df[ship_static_df['mmsi_x'] == int(inside_poly_df.iloc[index, 0])]
 
             # 查看是否匹配到静态数据
             if len(tmp_ship_static_merge) > 0:
-                shiptype_list.append(tmp_ship_static_merge.iloc[0, 22])
-                chinese_name.append(tmp_ship_static_merge.iloc[0, 11])
-                draught_list.append(tmp_ship_static_merge.iloc[0, 9])
-                dwt_list.append(tmp_ship_static_merge.iloc[0, 24])
+                # 判断目前是否符合通航条件
+                if inside_poly_df.iloc[index, 2] == 1:
+                    # 获取对应通航孔信息
+                    for poly_ in poly_coordinate_list:
+                        poly_id = poly_[0]
+                        if poly_id == int(inside_poly_df.iloc[index, 1]):
+                            hole_max_dwt = poly_[-1]
+                            break
+
+                    if hole_max_dwt < float(tmp_ship_static_merge.iloc[0, 24]):
+                    # if hole_max_dwt < 10000.:
+                        inside_poly_df.iloc[index, 2] = 2
+                        inside_poly_df.iloc[index, 3] = '载重吨条件不符合'
+
+                    shiptype_list.append(tmp_ship_static_merge.iloc[0, 22])
+                    chinese_name.append(tmp_ship_static_merge.iloc[0, 11])
+                    draught_list.append(tmp_ship_static_merge.iloc[0, 9])
+                    dwt_list.append(tmp_ship_static_merge.iloc[0, 24])
+
             else:
                 shiptype_list.append('其他')
                 chinese_name.append('暂无')
@@ -224,4 +239,3 @@ if __name__ == "__main__":
         print(time.strftime('%Y-%m-%d %H:%M:%S'))
         print('----------------------------------')
         time.sleep(300)
-

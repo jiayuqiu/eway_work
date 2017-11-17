@@ -422,26 +422,31 @@ class Weather(object):
         :param report_: 气象报告，类型：string
         :return: 平均风力等级，阵风风力等级
         """
+        # 获取当天气象报告语句
+        pattern_today = re.compile(u'今天(.*?)。', re.S)
+        items_today = re.findall(pattern_today, report_)
+        today_report_string = items_today[0]
+
         # 获取当天的风力数据
-        pattern = re.compile(u'今天.*?阵风(.*?)级', re.S)
-        items_zf = re.findall(pattern, report_)
+        pattern = re.compile(u'阵风(.*?)级', re.S)
+        items_zf = re.findall(pattern, today_report_string)
 
-        pattern_to = re.compile(u'今天.*?到(.*?)级', re.S)
-        pattern_east = re.compile(u'今天.*?东风(.*?)级', re.S)
-        pattern_south = re.compile(u'今天.*?南风(.*?)级', re.S)
-        pattern_west = re.compile(u'今天.*?西风(.*?)级', re.S)
-        pattern_north = re.compile(u'今天.*?北风(.*?)级', re.S)
+        pattern_to = re.compile(u'到(.*?)级', re.S)
+        pattern_east = re.compile(u'东风(.*?)级', re.S)
+        pattern_south = re.compile(u'南风(.*?)级', re.S)
+        pattern_west = re.compile(u'西风(.*?)级', re.S)
+        pattern_north = re.compile(u'北风(.*?)级', re.S)
 
-        items_to = re.findall(pattern_to, report_)
+        items_to = re.findall(pattern_to, today_report_string)
         for x in items_to:
             for xx in x:
                 if xx.isdigit():
                     del items_to[items_to.index(x)]
                     break
-        items_E = re.findall(pattern_east, report_)
-        items_S = re.findall(pattern_south, report_)
-        items_W = re.findall(pattern_west, report_)
-        items_N = re.findall(pattern_north, report_)
+        items_E = re.findall(pattern_east, today_report_string)
+        items_S = re.findall(pattern_south, today_report_string)
+        items_W = re.findall(pattern_west, today_report_string)
+        items_N = re.findall(pattern_north, today_report_string)
 
         items_avg = items_E + items_S + items_W + items_N + items_to
 
@@ -468,7 +473,6 @@ class Weather(object):
         items_tmr_N = re.findall(pattern_tmr_north, report_)
 
         items_tmr_avg = items_tmr_E + items_tmr_S + items_tmr_W + items_tmr_N + items_tmr_to
-
         return items_avg, items_zf, items_tmr_avg, items_zf_tmr
 
     def get_wind_from_list(self, wind_data):

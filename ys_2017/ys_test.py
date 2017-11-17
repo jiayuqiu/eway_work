@@ -1122,6 +1122,55 @@ def drop_same_emergency_ship():
     conn.close()
 
 
+def add_standard_ship_name():
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+    select_sql = """
+                 SELECT * FROM ship_static_data_eway
+                 """
+    cur.execute(select_sql)
+    for line in cur.fetchall():
+        # print(line)
+        # input("----------")
+        if line[11]:
+            standard_ship_english_name = line[11].replace(' ', '')
+            update_sql = """
+                         UPDATE ship_static_data_eway SET standard_ship_english_name='%s' WHERE mmsi='%d'
+                         """ % (standard_ship_english_name, line[0])
+            print(line[0])
+            cur.execute(update_sql)
+    conn.commit()
+    cur.close()
+    conn.close()
+
+
+def add_mysql_tel():
+    # 链接数据库
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    tel_file = open('/home/qiu/Desktop/tel_list_预案组.txt', 'r')
+    count = 100
+    create_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    for line in tel_file:
+        tel_list = line.split('\n')[0].split(',')
+        print(tel_list)
+        for tel in tel_list:
+            insert_sql = """
+                         INSERT INTO t_manager(ID, LOGIN_NAME, LOGIN_PASSWORD, CREATE_DATE, UPDATE_DATE, 
+                         tel, ext_person, manager_id, IS_DELETE) VALUE ('%s', '%s','%s', '%s', '%s', '%s', '%s', '%d', '%d')
+                         """ % (count, tel, tel,create_time, create_time, tel, 3, count, 0)
+            cur.execute(insert_sql)
+            count += 1
+    conn.commit()
+    cur.close()
+    conn.close()
+    tel_file.close()
+
+
 if __name__ == "__main__":
     # # --------------------------------------------------------------------------
     # # 获取洋山水域内AIS数据
@@ -1391,4 +1440,4 @@ if __name__ == "__main__":
     #
     # server.quit()
 
-    drop_same_emergency_ship()
+    add_mysql_tel()
