@@ -546,7 +546,6 @@ def filter_low_speed_ship(sub_channel_ais):
     return speed_list
 
 
-
 def filter_point_before_circle(fit_line_df):
     """
     从拟合曲线中找到离开圆之前的轨迹点
@@ -556,7 +555,7 @@ def filter_point_before_circle(fit_line_df):
     # 找到每条曲线中，离开圆之前的点
     filtered_point_df = pd.DataFrame()
     inside_circel_bool_list = []
-    for key, value in fit_line_df.groupby('line_id'):
+    for key, value in fit_line_df.groupby('channel_id'):
         inside_circle_bool = False
         value = np.array(value)
         for index, line in enumerate(value):
@@ -566,12 +565,12 @@ def filter_point_before_circle(fit_line_df):
             else:
                 if inside_circle_bool:
                     filtered_point_df = filtered_point_df.append(pd.DataFrame(value[:index, :]))
-                    # filtered_point_df.insert(4, 'inside_circie', inside_circel_bool_list)
+                    # filtered_point_df.insert(4, 'inside_circle', inside_circel_bool_list)
                     break
             inside_circel_bool_list.append(inside_circle_bool)
-    filtered_point_df.insert(4, 'inside_circie', inside_circel_bool_list)
+    filtered_point_df.insert(4, 'inside_circle', inside_circel_bool_list)
+    # filtered_point_df['inside_circle'] = inside_circel_bool_list
     return filtered_point_df
-
 
 
 def predict_circle_ship_number(ys_ais, fit_line_df, str_time=1464739031, end_time=1465920000):
@@ -769,29 +768,6 @@ def get_bridge_poly():
     return bridge_poly_list
 
 
-def bridge_main(ys_ais):
-    """
-    每10分钟判断一次，经过东海大桥通航孔的船舶数量
-    :param ys_ais: 10分钟洋山水域内的ais数据，类型：data frame
-    :return: 1-5号多边形内的船舶数量与mmsi列表
-    """
-    # 将ais的data frame转换为array
-    ys_ais_array = np.array(ys_ais)
-
-    # 获取多边形数据
-    poly_coordinate_list = get_bridge_poly()
-
-    # 找出多边形中的船舶数量
-    for poly_ in poly_coordinate_list:
-        poly_id = poly_[0]
-        print(poly_id)
-        each_coordinate_array = np.array(poly_[1])
-        inside_poly_mmsi_list = []
-        for ais_row in ys_ais_array:
-            if point_poly(pointLon=ais_row[2], pointLat=ais_row[3], polygon=each_coordinate_array):
-                cross_bool = check_cross(ais_row[0])
-
-
 def merge_ship_static(file_path):
     """
     合并船舶信息表
@@ -867,6 +843,7 @@ def ship_static_mysql():
     conn.commit()
     cur.close()
     conn.close()
+
 
 def ship_static_opt(file_path):
     """
@@ -1171,6 +1148,54 @@ def add_mysql_tel():
     tel_file.close()
 
 
+def fit_line_cog(lon1, lat1, lon2, lat2):
+    """
+    根据AIS数据两点，得到cog
+    :param lon1:
+    :param lat1:
+    :param lon2:
+    :param lat2:
+    :return:
+    """
+    import math
+    deta_lon = lon2 - lon1
+    deta_lat = lat2 - lat1
+    if (deta_lon > 0.) & (deta_lat < 0.):
+        return 90 - (math.atan(abs(deta_lat/deta_lon)) * (180. / math.pi))
+    elif (deta_lon > 0.) & (deta_lat > 0.):
+        return 90 + (math.atan(abs(deta_lat/deta_lon)) * (180. / math.pi))
+    elif (deta_lon < 0.) & (deta_lat > 0.):
+        return 270 - (math.atan(abs(deta_lat/deta_lon)) * (180. / math.pi))
+    elif (deta_lon < 0.) & (deta_lat < 0.):
+        return 270 + (math.atan(abs(deta_lat/deta_lon)) * (180. / math.pi))
+
+
+def get_cog_fit_line():
+    """
+    获取拟合曲线每个点的cog
+    :return: 对拟合曲线数据添加一列cog字段，类型：dataframe
+    """
+    fit_line_file_list = ['/home/qiu/Documents/ys_ais/交通预警优化数据/opt_east_west_fit_line.csv',
+                          '/home/qiu/Documents/ys_ais/交通预警优化数据/opt_north_up_fit_line.csv',
+                          '/home/qiu/Documents/ys_ais/交通预警优化数据/opt_south_down_fit_line.csv',
+                          '/home/qiu/Documents/ys_ais/交通预警优化数据/opt_west_east_fit_line.csv']
+    fit_line_df_list = []
+    for fit_line_file in fit_line_file_list:
+        fit_line_df = pd.read_csv(fit_line_file)
+        cog_list = []
+        for index in range(len(fit_line_df) - 1):
+            cog_float = fit_line_cog(lon1=fit_line_df.iloc[index, 0], lat1=fit_line_df.iloc[index, 1],
+                                     lon2=fit_line_df.iloc[index+1, 0], lat2=fit_line_df.iloc[index+1, 1])
+            cog_list.append(cog_float)
+        cog_list.append(0.)
+        fit_line_df['cog'] = cog_list
+        fit_line_df_list.append(fit_line_df)
+    fit_line_sum_df = pd.concat(fit_line_df_list, ignore_index=True)
+    # /home/qiu/Documents/ys_ais/交通预警优化数据/opt_west_east_fit_line.csv
+    fit_line_sum_df.to_csv('/home/qiu/Documents/ys_ais/交通预警优化数据/opt_all_fit_line.csv', index=None)
+    print(fit_line_sum_df)
+
+
 if __name__ == "__main__":
     # # --------------------------------------------------------------------------
     # # 获取洋山水域内AIS数据
@@ -1305,9 +1330,13 @@ if __name__ == "__main__":
     # fit_line_west_east_df = pd.read_csv('/home/qiu/Documents/ys_ais/new_west_east_fit_line.csv')
     # fit_line_df = pd.concat([fit_line_east_west_df, fit_line_north_up_df,
     #                          fit_line_south_down_df, fit_line_west_east_df], ignore_index=True)
-    # filtered_fit_line_df = filter_point_before_circle(fit_line_df=fit_line_df)
-    # filtered_fit_line_df.to_csv("/home/qiu/Documents/filtered_fit_line.csv", index=None)
-    # print(filtered_fit_line_df)
+    # print(fit_line_df.head())
+    # input("--------------------")
+    fit_line_df = pd.read_csv('/home/qiu/Documents/ys_ais/交通预警优化数据/opt_all_fit_line.csv')
+    filtered_fit_line_df = filter_point_before_circle(fit_line_df=fit_line_df)
+    filtered_fit_line_df.columns = ['longitude', 'latitude', 'acquisition_time', 'channel_id', 'inside_circle', 'cog']
+    filtered_fit_line_df.to_csv("/home/qiu/Documents/ys_ais/交通预警优化数据/filtered_fit_line.csv", index=None)
+    print(filtered_fit_line_df)
 
     # # 检验模型
     # predict_res, predict_str_time = predict_circle_ship_number(ys_ais=data, fit_line_df=filtered_fit_line_df)
@@ -1440,4 +1469,4 @@ if __name__ == "__main__":
     #
     # server.quit()
 
-    add_mysql_tel()
+    # get_cog_fit_line()

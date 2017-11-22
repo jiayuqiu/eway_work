@@ -179,7 +179,6 @@ class Port(object):
             reason = ''
             if not breth_port_bool:
                 reason += '码头数据匹配失败;'
-
             if not wind_port_bool:
                 reason += '风力条件不符合;'
             if not njd_port_bool:
@@ -188,7 +187,6 @@ class Port(object):
                 reason += '载重吨条件不符合;'
             if not draught_port_bool:
                 reason += '吃水深度条件不符合;'
-
             return 2, reason
 
     def get_port_data(self):

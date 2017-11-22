@@ -248,8 +248,9 @@ class AIS(object):
             time_stamp = time.mktime(time_array)
             longitude = float(row[3])
             latitude = float(row[4])
-            ais_list.append([mmsi, time_stamp, longitude, latitude])
-        ais_df = pd.DataFrame(ais_list, columns=["unique_ID", "acquisition_time", "longitude", "latitude"])
+            cog = int(row[10])
+            ais_list.append([mmsi, time_stamp, longitude, latitude, cog])
+        ais_df = pd.DataFrame(ais_list, columns=["unique_ID", "acquisition_time", "longitude", "latitude", "cog"])
         return ais_df
 
 
