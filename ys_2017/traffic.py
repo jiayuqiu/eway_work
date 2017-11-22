@@ -17,9 +17,6 @@ class Traffic(object):
         """
         获取某10分钟时限内的ais数据，结合拟合后的曲线，预测1小时后船舶在警戒范围内的船舶数量
         :param ys_ais: 洋山水域内的ais数据，类型：data frame
-        :param fit_line_df: 拟合曲线数据，类型：data frame
-        :param str_time: ais数据开始时间，类型：int
-        :param end_time: ais数据结束时间，类型：int
         :return: 1小时后圆内的船舶条数，类型：int
         """
         # 初始化预测结果
@@ -33,23 +30,30 @@ class Traffic(object):
         for mmsi, value in ys_ais.groupby('unique_ID'):
             # print("mmsi = %d" % mmsi)
             newest_point = value.iloc[-1, :]
-            min_dst = 99999999.
-            min_dst_channel = False
+            min_dst = 99999999.  # 最小距离判断值
+            min_deta_cog = 91.  # 最小角度偏差判断值
 
             # 用最新的ais数据点与拟合曲线数据中每个点进行对比，找到该点属于哪条航道
             for row in fit_line_array:
+                # 获取AIS数据点到拟合曲线的距离
                 point_line_dst = getDist(lon1=newest_point['longitude'], lat1=newest_point['latitude'],
                                          lon2=row[0], lat2=row[1])
-                if point_line_dst < min_dst:
-                    min_dst = point_line_dst
-                    min_dst_channel = row[3]
-                    now_time = row[2]
-                    enter_time = enter_out_array[enter_out_array[:, 3] == min_dst_channel][0, 2] - now_time
-                    out_time = enter_out_array[enter_out_array[:, 3] == min_dst_channel][-1, 2] - now_time
 
-            if (min_dst < 1.5) & (enter_time > 0) & (out_time > 0):
+                # 获取AIS数据点cog与拟合曲线cog的差值
+                deta_cog = abs(row[10] - newest_point['cog']/10.)
+
+                if deta_cog < 90.:
+                    if point_line_dst < min_dst:
+                        min_dst = point_line_dst
+                        min_dst_channel = row[3]
+                        now_time = row[2]
+                        enter_time = enter_out_array[enter_out_array[:, 3] == min_dst_channel][0, 2] - now_time
+                        out_time = enter_out_array[enter_out_array[:, 3] == min_dst_channel][-1, 2] - now_time
+
+            # 判断该AIS数据点是否属于拟合曲线
+            if (min_dst < 1.5) & (enter_time > 0) & (out_time > 0):  # 若属于一条拟合曲线
                 predict_res.append([int(mmsi), int(enter_time // 600), int(out_time // 600)])
-            else:
+            else:  # 若不属于任何拟合曲线，利用cog、speed与圆心求切线进行判断
                 pass
         return predict_res
 
