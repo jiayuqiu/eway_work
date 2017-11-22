@@ -46,11 +46,17 @@ class AisMes(object):
             mmsi = int(ais_bm_list[2])
             longitude = float(ais_bm_list[7])
             latitude = float(ais_bm_list[8])
+            nav_status = int(ais_bm_list[3])
+            rot = float(ais_bm_list[4])
+            sog = float(ais_bm_list[5])
+            pos_acc = float(ais_bm_list[6])
+            cog = float(ais_bm_list[9])
+            true_head = float(ais_bm_list[10])
             if(int(longitude) >= 121) & (int(longitude) <= 123) &\
               (int(latitude) >= 30) & (int(latitude) <= 32):
                 # print(mmsi, longitude, latitude)
                 # input("-----------------------")
-                return [mmsi, longitude, latitude]
+                return [mmsi, longitude, latitude, nav_status, rot, sog, pos_acc, cog, true_head]
         elif ais_bm_list[0] == '1':
             # 解析静态数据
             mmsi = int(ais_bm_list[2])
@@ -71,9 +77,11 @@ class AisMes(object):
         :return:
         """
         insert_sql = """
-                     INSERT INTO ais_dynamic(mmsi, create_time, longitude, latitude, data_source) VALUE ('%s', '%s', '%s',
-                     '%s', '%s')
-                     """ % (ais_msg[0], create_time, ais_msg[1], ais_msg[2], data_source)
+                     INSERT INTO ais_dynamic(mmsi, create_time, longitude, latitude, data_source, nav_status, rot, sog, 
+                     pos_acc, cog, true_head) VALUE ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')
+                     """ % (ais_msg[0], create_time, ais_msg[1], ais_msg[2], data_source, ais_msg[3], ais_msg[4],
+                            ais_msg[5], ais_msg[6], ais_msg[7], ais_msg[8])
+        # print(insert_sql)
         self.cur.execute(insert_sql)
         self.conn.commit()
 
@@ -134,11 +142,10 @@ class AisMes(object):
                     break
                 data_analysised = self.ais_bm_analysis(data.decode())
                 if data_analysised:
-                    if len(data_analysised) == 3:
+                    if len(data_analysised) == 9:
                         self.ais_dynamic_mysql(data_analysised, create_time, 1)
                     else:
                         self.ais_static_mysql(data_analysised, create_time)
-
             except Exception as e:
                 if 'PRIMARY' in str(e):
                     pass
