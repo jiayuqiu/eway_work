@@ -41,13 +41,13 @@ if __name__ == "__main__":
             print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
         # 交通预警
-        try:
-            traffic = Traffic()
-            traffic.traffic_main(ys_ais=ys_ais_10mins, ship_static_df=ship_static_df)
-        except Exception as e:
-            print(e)
-            print('交通预警功能发生错误！！！')
-            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        # try:
+        traffic = Traffic()
+        traffic.traffic_main(ys_ais=ys_ais_10mins, ship_static_df=ship_static_df)
+        # except Exception as e:
+        #     print(e)
+        #     print('交通预警功能发生错误！！！')
+        #     print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
         print(time.strftime('%Y-%m-%d %H:%M:%S'))
         print('----------------------------------')

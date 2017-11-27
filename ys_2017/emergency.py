@@ -75,13 +75,11 @@ class Emergency(object):
         cur.close()
         conn.close()
 
-
     def emergency_main(self, ys_ais_10mins):
         """
         应急决策主函数
         """
         newest_ais_df = self.emergency_ship_newest_ais(ys_ais=ys_ais_10mins)
-        print(newest_ais_df)
         self.input_emergency_mysql(newest_ais=newest_ais_df)
 
 

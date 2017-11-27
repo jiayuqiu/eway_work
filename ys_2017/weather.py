@@ -204,15 +204,18 @@ class Weather(object):
         weather_report_element_list = root_page_source.xpath(weather_report_xpath_string)
         report_string = decode_unicode_references(tostring(weather_report_element_list[0])).replace(' ', '')
         report_split_list = decode_unicode_references(report_string).split('<br>')
+        # print(report_split_list)
         sea_weather_index = report_split_list.index(u"\\n舟山沿海海面：\\n")
 
-        sea_weather_str = report_split_list[sea_weather_index] + report_split_list[sea_weather_index + 2] + \
-                          report_split_list[sea_weather_index + 4] + report_split_list[sea_weather_index + 6]
+        sea_weather_str = report_split_list[sea_weather_index] + report_split_list[sea_weather_index + 1] + \
+                          report_split_list[sea_weather_index + 2] + report_split_list[sea_weather_index + 3]
         sea_weather_str = sea_weather_str.replace(r'\n', '')
 
         # 获取天气预报更新时间
         time_element_pattern = re.compile(r'舟山市气象台(.*?)年(.*?)月(.*?)日(.*?)点钟发布', re.S)
         pub_date, pub_clock = self.zhoushan_pub_time(time_element_pattern, report_string)
+        # print(sea_weather_str)
+        # input("---------------")
         return pub_date, pub_clock, sea_weather_str, "舟山"
 
     # -----------------------------------------------------------------------------------
@@ -423,8 +426,9 @@ class Weather(object):
         :return: 平均风力等级，阵风风力等级
         """
         # 获取当天气象报告语句
-        pattern_today = re.compile(u'今天(.*?)。', re.S)
+        pattern_today = re.compile(u'今天(.*?)明天', re.S)
         items_today = re.findall(pattern_today, report_)
+        # print(items_today)
         today_report_string = items_today[0]
 
         # 获取当天的风力数据

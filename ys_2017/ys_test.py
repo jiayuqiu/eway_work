@@ -1148,7 +1148,7 @@ def add_mysql_tel():
     tel_file.close()
 
 
-def fit_line_cog(lon1, lat1, lon2, lat2):
+def coor_cog(lon1, lat1, lon2, lat2):
     """
     根据AIS数据两点，得到cog
     :param lon1:
