@@ -5,6 +5,29 @@ import numpy as np
 import pandas as pd
 import pymysql
 
+
+def coor_cog(lon1, lat1, lon2, lat2):
+    """
+    根据AIS数据两点，得到cog
+    :param lon1:
+    :param lat1:
+    :param lon2:
+    :param lat2:
+    :return:
+    """
+    import math
+    deta_lon = lon2 - lon1
+    deta_lat = lat2 - lat1
+    if (deta_lon >= 0.) & (deta_lat <= 0.):
+        return 90 - (math.atan(abs(deta_lat / deta_lon)) * (180. / math.pi))
+    elif (deta_lon >= 0.) & (deta_lat >= 0.):
+        return 90 + (math.atan(abs(deta_lat / deta_lon)) * (180. / math.pi))
+    elif (deta_lon <= 0.) & (deta_lat >= 0.):
+        return 270 - (math.atan(abs(deta_lat / deta_lon)) * (180. / math.pi))
+    elif (deta_lon <= 0.) & (deta_lat <= 0.):
+        return 270 + (math.atan(abs(deta_lat / deta_lon)) * (180. / math.pi))
+
+
 def get_ship_static_mysql():
     print('loading ship static data...')
     # 链接数据库

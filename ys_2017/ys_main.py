@@ -5,7 +5,7 @@ import time
 from ais_analysis import AIS
 from port import Port
 from emergency import Emergency
-from bridge import Bridge
+from bridge import Bridge, BridgeOPT
 from traffic import Traffic
 
 from base_func import get_ship_static_mysql
@@ -23,13 +23,13 @@ if __name__ == "__main__":
         ys_ais_10mins = ais.load_newest_ais()
 
         # 东海大桥
-        try:
-            bridge = Bridge()
-            bridge.bridge_main(ys_ais=ys_ais_10mins, ship_static_df=ship_static_df)
-        except Exception as e:
-            print(e)
-            print('东海大桥功能发生错误！！！')
-            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        # try:
+        bridge = BridgeOPT()
+        bridge.bridge_main(ys_ais=ys_ais_10mins, ship_static_df=ship_static_df)
+        # except Exception as e:
+        #     print(e)
+        #     print('东海大桥功能发生错误！！！')
+        #     print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
         # 应急决策
         try:
@@ -41,13 +41,13 @@ if __name__ == "__main__":
             print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
         # 交通预警
-        # try:
-        traffic = Traffic()
-        traffic.traffic_main(ys_ais=ys_ais_10mins, ship_static_df=ship_static_df)
-        # except Exception as e:
-        #     print(e)
-        #     print('交通预警功能发生错误！！！')
-        #     print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        try:
+            traffic = Traffic()
+            traffic.traffic_main(ys_ais=ys_ais_10mins, ship_static_df=ship_static_df)
+        except Exception as e:
+            print(e)
+            print('交通预警功能发生错误！！！')
+            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
         print(time.strftime('%Y-%m-%d %H:%M:%S'))
         print('----------------------------------')
