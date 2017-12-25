@@ -23,13 +23,13 @@ if __name__ == "__main__":
         ys_ais_10mins = ais.load_newest_ais()
 
         # 东海大桥
-        # try:
-        bridge = BridgeOPT()
-        bridge.bridge_main(ys_ais=ys_ais_10mins, ship_static_df=ship_static_df)
-        # except Exception as e:
-        #     print(e)
-        #     print('东海大桥功能发生错误！！！')
-        #     print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        try:
+            bridge = BridgeOPT()
+            bridge.bridge_main(ys_ais=ys_ais_10mins, ship_static_df=ship_static_df)
+        except Exception as e:
+            print(e)
+            print('东海大桥功能发生错误！！！')
+            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 
         # 应急决策
         try:

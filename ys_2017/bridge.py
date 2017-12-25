@@ -325,6 +325,14 @@ class BridgeOPT(object):
             if line[2] == 2:
                 create_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
                 tb_pop_mysql(create_time=create_time, warn_type='东海大桥', warn_text='有东海大桥预警，请注意！', if_pop=0)
+                bridge_warning_history_update_sql = """
+                                                    INSERT INTO bridge_warning_history(mmsi, ship_chinese_name, ship_type,
+                                                    bridge_hole, is_cross, create_time, reason, dwt, draught, update_time) 
+                                                    VALUE('%s', '%s', '%s', '%s', '%d', '%s', '%s', '%f', '%f', '%s')""" \
+                                                    % (line[0], line[5], line[4], line[1], line[2], create_time,
+                                                       line[3], float(line[6]), float(line[7]), create_time)
+                cur.execute(bridge_warning_history_update_sql)
+
         conn.commit()
         conn.close()
 

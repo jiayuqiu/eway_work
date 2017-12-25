@@ -124,10 +124,16 @@ class Weather(object):
         wind_str = decode_unicode_references(tostring(root_wind_list[0]))
         wind_pattern = re.compile(u'<span style="background:.*?">'
                                   u'(.*?)</span>', re.S)
+        wind_pattern_no_background = re.compile(u'<span>(.*?)</span>', re.S)
         wind_elements_list = re.findall(wind_pattern, wind_str)
+        wind_elements_no_background_list = re.findall(wind_pattern_no_background, wind_str)
         for wind_element in wind_elements_list:
             wind_level = (wind_element.split(r'\n     ')[1]).split(r'\n    ')[0]
             all_wind_list.append(int(wind_level))
+
+        for wind_element_no_background in wind_elements_no_background_list:
+            wind_level_no_background = (wind_element_no_background.split(r'\n     ')[1]).split(r'\n    ')[0]
+            all_wind_list.append(int(wind_level_no_background))
 
         # xpath获取能见度数据
         njd_xpath = '//table/tbody/tr[5]/td'
@@ -234,37 +240,43 @@ class Weather(object):
         return pub_date_string, pub_clock_string
 
 
-    def cj_report(self, report_list):
+    def cj_report(self, report_string):
         """
         获取长江口天气预报
-        :param report_list: 按回车分割后的上海气象报告
+        :param report_list: 上海气象报告
         :return: 长江口天气预报，类型：stirng
         """
-        cj_report_str = ""
-        try:
-            cj_index = report_list.index(u"今天和明天上海市和长江口区天气预报：")
-            cj_report = report_list[cj_index] + '\n' + report_list[cj_index + 1]
-            cj_report = cj_report.split(' ')
-            for x in cj_report:
-                if x:
-                    x = x.split('\n')
-                    for xx in x:
-                        cj_report_str = cj_report_str + xx
-        except:
-            pass
-
-        try:
-            cj_index = report_list.index(u"今天夜里和明天上海市和长江口区天气预报：")
-            cj_report = report_list[cj_index] + '\n' + report_list[cj_index + 1]
-            cj_report = cj_report.split(' ')
-            for x in cj_report:
-                if x:
-                    x = x.split('\n')
-                    for xx in x:
-                        cj_report_str = cj_report_str + xx
-        except:
-            pass
-        return cj_report_str
+        # 获取当天气象报告语句
+        pattern_today = re.compile(u'今天.*?和明天上海市和长江口区天气预报：.*?。(.*?)。', re.S)
+        items_today = re.findall(pattern_today, report_string)
+        # print(items_today)
+        today_report_string = items_today[0]
+        return today_report_string
+        # cj_report_str = ""
+        # try:
+        #     cj_index = report_list.index(u"今天和明天上海市和长江口区天气预报：")
+        #     cj_report = report_list[cj_index] + '\n' + report_list[cj_index + 1]
+        #     cj_report = cj_report.split(' ')
+        #     for x in cj_report:
+        #         if x:
+        #             x = x.split('\n')
+        #             for xx in x:
+        #                 cj_report_str = cj_report_str + xx
+        # except:
+        #     pass
+        #
+        # try:
+        #     cj_index = report_list.index(u"今天夜里和明天上海市和长江口区天气预报：")
+        #     cj_report = report_list[cj_index] + '\n' + report_list[cj_index + 1]
+        #     cj_report = cj_report.split(' ')
+        #     for x in cj_report:
+        #         if x:
+        #             x = x.split('\n')
+        #             for xx in x:
+        #                 cj_report_str = cj_report_str + xx
+        # except:
+        #     pass
+        # return cj_report_str
 
     def shanghai(self):
         """
@@ -283,7 +295,7 @@ class Weather(object):
         report_list = report_string.split('\\n')
 
         # 获取长江口天气预报
-        cj_report_str = self.cj_report(report_list)
+        cj_report_str = self.cj_report(report_string)
 
         # 获取上海气象报告更新时间
         pub_time_xpath = '/html/body/div[1]/div[4]/div[2]/div[1]/div[2]/ul/li[1]'
@@ -429,7 +441,13 @@ class Weather(object):
         pattern_today = re.compile(u'今天(.*?)明天', re.S)
         items_today = re.findall(pattern_today, report_)
         # print(items_today)
+        if len(items_today) == 0:
+            return ['3-4'], ['3-4'], ['3-4'], ['3-4']
         today_report_string = items_today[0]
+
+        # 获取无风向时的风力等级
+        pattern_value = re.compile(u'风力都是(.*?)级', re.S)
+        items_value = re.findall(pattern_value, today_report_string)
 
         # 获取当天的风力数据
         pattern = re.compile(u'阵风(.*?)级', re.S)
@@ -568,13 +586,21 @@ class Weather(object):
 
             # 当天最大阵风
             if len(zf_wind_list) > 0:
-                max_zf_wind = self.get_wind_from_list(zf_wind_list)
+                try:
+                    max_zf_wind = self.get_wind_from_list(zf_wind_list)
+                except Exception as e:
+                    print('wind had error!!!')
+                    max_zf_wind = 0
             else:
                 max_zf_wind = 0
 
             # 第二天最大平均风力
             if len(tmr_avg_wind_list) > 0:
-                tmr_max_avg_wind = self.get_wind_from_list(tmr_avg_wind_list)
+                try:
+                    tmr_max_avg_wind = self.get_wind_from_list(tmr_avg_wind_list)
+                except Exception as e:
+                    print('wind had error!!!')
+                    tmr_max_avg_wind = 0
             else:
                 tmr_max_avg_wind = 0
 
