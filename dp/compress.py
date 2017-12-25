@@ -33,7 +33,7 @@ class compress(object):
                               each_data[i + 1][3]) * self.accuracy) / (each_data[i + 1][1] - each_data[i][1])
                 if (v1 < speed and v2 > speed) | (v1 > speed and v2 < speed):
                     list_x.append(i)
-                    list_x.sort()
+            list_x.sort()
         else:
             pass
         return list_x
@@ -185,9 +185,6 @@ class compress(object):
             cos = cosVector([strLon - endLon, strLat - endLat, strTime - endTime],
                             [strLon - endLon, strLat - endLat, 0])
             sin = math.sqrt(1 - cos ** 2)
-            print("maxDst = %f" % (((maxDst / (vectorL_lon ** 2 + vectorL_lat ** 2 + vectorL_time ** 2)) ** 0.5) *
-                  int(111.319 * self.accuracy)))
-            raw_input("=============================")
             if maxDst > (((self.extDegree * sin) ** 2) *
                          (vectorL_lon ** 2 + vectorL_lat ** 2 + vectorL_time ** 2)):  # 若存在分割点
                 # 保存分割点
