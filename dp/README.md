@@ -120,3 +120,11 @@ cdp、ddp、qdp
 100m | 273s | 0.002521% | 608605条
 150m | 263s | 0.002632% | 506074条
 200m | 258s | 0.002735% | 438474条
+
+#### 快速DP算法，spark运行
+bin/spark-submit --master local[2] --executor-memory 2G --driver-memory 1G --conf spark.default.parallelism=12 --conf spark.shuffle.memoryFraction=0.3  /media/qiu/193D-D9CB/qiu/dp_main_spark.py 0.2 /home/qiu/Documents/201609_50w.tsv bm /home/qiu/Documents/tst_compress_bm
+
+参数1：最大距离，输入单位：千米，默认为0.05千米
+参数2：压缩前的AIS数据，文件路径
+参数3：数据来源，bm-博懋，cx-船讯网，thr-三阶段表格式
+参数4：压缩后的AIS数据，输出路径
