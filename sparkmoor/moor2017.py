@@ -176,7 +176,7 @@ class moor(object):
             # 获取两个停泊事件之间的间隔时间
             apart_time = begin_time - last_time
             # 获取两个停泊事件之间的航段
-            sailArray = np.array(shipAISList[lastEndIndex:(begin_time + 1)])
+            sailArray = np.array(shipAISList[lastEndIndex:(startIndex + 1)])
             # 获取平稳状态下的平均瞬时速度
             avgSpeed = self.steadyAvgSpeed.shipSteadySpeedThr(sailArray)
             # 获取上一停泊结束时间至当前停泊开始时间的静态数据
@@ -192,9 +192,9 @@ class moor(object):
             else:
                 draught = None
         else:  # 若不存在上次停泊事件
-            apart_time  = None
-            avgSpeed    = None
-            draught     = None
+            apart_time = None
+            avgSpeed   = None
+            draught    = None
         mmsi      = shipAISList[endIndex][0]                    # 船舶MMSI
         begin_lon = shipAISList[startIndex][6] * self.preision  # longitude of starting nav point
         begin_lat = shipAISList[startIndex][7] * self.preision  # latitude of starting nav point
@@ -594,7 +594,6 @@ class moor(object):
                 # 分割每行停泊事件数据
                 moorLineList = moorRDDLine.split(",")
                 # 获取停泊事件中的平均经纬度数据，areaID
-                print moorLineList[0]
                 moorAvgLon = float(moorLineList[15]) / 1000000.
                 moorAvgLat = float(moorLineList[16]) / 1000000.
                 moorAreaID = int(moorLineList[28])

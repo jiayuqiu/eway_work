@@ -668,7 +668,7 @@ def new_nav_spark(grouped_ship, PREISION = 1000000.0, D_DST = 282842.712474619, 
 
 if __name__ == "__main__":
     # MASTER_HOME = "spark://192.168.1.121:7077"
-    MASTER_HOME = "local[*]"
+    MASTER_HOME = "local[4]"
     conf = SparkConf()
     conf.setMaster(MASTER_HOME)
     conf.setAppName("new.nav.qiu")
@@ -686,22 +686,21 @@ if __name__ == "__main__":
                     "qinzhou02", "quanzhou03", "xiamen06", "yingkou02", "ningbo08",
                     "rotterdam04", "newjersey03", "newyork02", "busan03", "singapore03",
                     "hongkong03"]
-    polyPortDF = pd.read_csv("/home/qiu/Documents/data/data/staticData/Asia_anchores.csv")
+    polyPortDF = pd.read_csv("/home/qiu/Documents/Asia_anchores.csv")
     polyPortDF = polyPortDF[polyPortDF["anchores_id"].isin(portNameList)]
     polyPortDF.columns = ["longitude", "latitude", "portName"]
 
     # 获取"点港口"信息
-    pointPortDF = pd.read_csv("/home/qiu/Documents/sparkTestResult/allPortTest/"
-                              "part-00000", header=None, error_bad_lines=False)
+    pointPortDF = pd.read_csv("/home/qiu/Documents/allPortTest/part-00000", header=None, error_bad_lines=False)
     pointPortDF.columns = ["portName", "portLon", "portLat", "portAreaID", "closePortAreaID"]
     # pointPortDF = pointPortDF.iloc[:, [30, 26, 1]]
     # pointPortDF.columns = ["longitude", "latitude", "portName"]
 
     # 读取静态数据
-    staticDF = pd.read_csv("/home/qiu/Documents/data/data/staticData/staticData2016/"
-                           "static_ships_20160901")
-    staticDF.columns = ["shipid", "time", "shiptype", "length", "width", "left",
-                        "trail", "imo", "name", "callsign", "draught", "destination", "eta"]
+    # staticDF = pd.read_csv("/home/qiu/Documents/data/data/staticData/staticData2016/"
+    #                        "static_ships_20160901")
+    staticDF = pd.DataFrame(columns=["shipid", "time", "shiptype", "length", "width", "left",
+                                     "trail", "imo", "name", "callsign", "draught", "destination", "eta"])
 
     # 读取ais数据，并转换为停泊事件模型需要的输入格式
     # testRDD = sc.textFile("hdfs://192.168.1.204:9000/qiu/ais/ships_20150901.csv")
@@ -710,7 +709,7 @@ if __name__ == "__main__":
     #                 .filter(lambda line: line != None)\
     #                 .map(lambda line: convertAIS(line)) \
     #                 .filter(lambda line: line != None)
-    shipsAISRDD = sc.textFile("/home/qiu/Documents/data/ships_20160901.csv")\
+    shipsAISRDD = sc.textFile("/home/qiu/Documents/ships_20160901.csv")\
                     .map(lambda line: fc.cx_to_thr(line))\
                     .filter(lambda line: line != None)\
                     .map(lambda line: line.split(","))
@@ -718,13 +717,13 @@ if __name__ == "__main__":
     navsRDD = shipsAISRDD.groupBy(lambda v: v[0])\
                          .map(lambda group: mr.moorShip(shipAIS=group, staticDF=staticDF)) \
                          .filter(lambda group: group!=None)\
-                         .saveAsTextFile("/home/qiu/Documents/sparkTestResult/portTest")
+                         # .saveAsTextFile("/home/qiu/Documents/sparkTestResult/portTest")
     endTime = time.time()
     print("spark uses %f" % (endTime - startTime))
 
-    # moorPortRDD = navsRDD.map(lambda group: mr.moorPort(moorRDD=group, pointPortDF=pointPortDF,
-    #                                                     polyPortDF=polyPortDF))\
-    #                      .saveAsTextFile("/home/qiu/Documents/sparkTestResult/moorPortTest")
+    moorPortRDD = navsRDD.map(lambda group: mr.moorPort(moorRDD=group, pointPortDF=pointPortDF,
+                                                        polyPortDF=polyPortDF))\
+                         .saveAsTextFile("/home/qiu/Documents/sisi2017/wrf/moorPortTest")
     # print navsRDD[:5]
     print("hellow world")
     sc.stop()
