@@ -42,13 +42,6 @@ def sum_port_dock_time_each(ship_ais_poly_df, loc_list):
     return sum_time_list
 
 
-def match_teu():
-    """
-    对船舶匹配teu
-    :return:
-    """
-
-
 if __name__ == "__main__":
     # error_file = open('/home/qiu/Documents/sisi2017/zhaonan_data/ais_poly_guangzhou_201708/part-00000', 'r')
     # right_file = open('/home/qiu/Documents/sisi2017/zhaonan_data/ais_poly_guangzhou_201708/convert-00000', 'w')

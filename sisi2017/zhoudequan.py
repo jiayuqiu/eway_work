@@ -28,6 +28,7 @@ def getDist(lon1, lat1, lon2, lat2):  # 得到地球两点距离，单位千米
 
     return dst
 
+##########################################################
 
 def get_test_ship_ais(month_str, day_num, test_ship_list):
     """获取测试船舶AIS数据"""
