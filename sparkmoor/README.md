@@ -13,10 +13,12 @@
 ![image](image/moorPortFlowChart.jpg)
 
 # 运行spark分布式代码
+```bash
 bin/spark-submit ~/PycharmProjects/eway_work/sparkmoor/moor_main_spark.py /home/qiu/Documents/staticData/Asia_anchores.csv /home/qiu/Documents/staticData/part-00000 /media/qiu/新加卷/2017/01/date_1 thr /home/qiu/Documents/tst_moor
+```
 
-- 参数1：多边形范围数据路径
-- 参数2：点港口数据路径
-- 参数3：AIS数据路径
-- 参数4：AIS数据来源，bm-博懋，cx-船讯网，thr-三阶段
-- 参数5：停泊日志输出文件路径
+- 参数1：多边形范围数据路径，/home/qiu/Documents/staticData/Asia_anchores.csv
+- 参数2：点港口数据路径，/home/qiu/Documents/staticData/part-00000
+- 参数3：AIS数据路径，/media/qiu/新加卷/2017/01/date_1
+- 参数4：AIS数据来源，bm-博懋，cx-船讯网，thr-三阶段；thr
+- 参数5：停泊日志输出文件路径，/home/qiu/Documents/tst_moor
