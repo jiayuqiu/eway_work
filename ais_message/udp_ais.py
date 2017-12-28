@@ -152,21 +152,6 @@ class AisMes(object):
                 else:
                     print(e)
 
-    def ais_message_main(self, ais_org_list):
-        """
-        解析ais报文主函数
-        :return:
-        """
-        ais_list = []
-        for tmp_string in ais_org_list:
-            try:
-                pass
-            except Exception as e:
-                print("==============")
-                print(e)
-                print("==============")
-                # print(e)
-        return ais_list
 
 if __name__ == "__main__":
     aisMes = AisMes()
