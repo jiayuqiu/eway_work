@@ -246,7 +246,7 @@ class BridgeOPT(object):
         cur.execute("SELECT * FROM bridge_data")
         for row in cur.fetchall():
             poly_id = row[0]
-            max_wind = int(row[8])
+            max_wind = float(row[8])
             min_njd = int(row[9])
             max_dwt = int(row[6])
             poly_coordinate_string = row[13]
@@ -358,7 +358,7 @@ class BridgeOPT(object):
     def judge_weather(self, bridge_max_wind, bridge_min_njd, poly_id):
         """
         判断天气条件是否满足通航条件
-        :param bridge_max_wind: 通航孔最大通航风力，类型：int
+        :param bridge_max_wind: 通航孔最大通航风力，类型：float
         :param bridge_min_njd: 通航孔最小通航能见度，类型：int
         :param poly_id: 通航孔编号
         :return: bool_num，是否满足条件，1-满足,2-不满足；reason，理由，类型：string
@@ -369,7 +369,9 @@ class BridgeOPT(object):
         newest_min_njd = newest_weather_conf_df.iloc[0, 6]
 
         # 获取天气是否满足条件
-        bridge_cross_wind_bool = (int(bridge_max_wind) > int(newest_avg_max_wind))
+        bridge_cross_wind_bool = (float(bridge_max_wind) > float(newest_avg_max_wind))
+        # print(poly_id, float(bridge_max_wind), float(newest_avg_max_wind))
+        # input("---------------2---------------")
         bridge_cross_njd_bool = (int(bridge_min_njd) < int(newest_min_njd))
 
         # 判断是否符合通航条件
@@ -453,6 +455,8 @@ class BridgeOPT(object):
         # 获取多边形数据
         # poly_id, poly_coordinate_list, max_wind, min_njd, max_dwt, point1, point2, max_angle
         poly_coordinate_list = self.get_bridge_poly()
+        # print(poly_coordinate_list)
+        # input("-------------1-----------------")
 
         # 找出多边形中的船舶数量
         inside_poly_mmsi_list = []  # col0:chinese name, col1:mmsi, col2:hole_id, col3:if_cross, col4:reason
@@ -463,8 +467,8 @@ class BridgeOPT(object):
             each_coordinate_array = np.array(poly_[1])
 
             # 获取东海大桥通航孔的预警条件
-            bridge_max_wind = int(poly_[2])
-            bridge_min_njd = int(poly_[3])
+            bridge_max_wind = float(poly_[2])
+            bridge_min_njd = float(poly_[3])
             for ais_row in ys_ais_array:
                 # 判断该条ais数据是否在多边形内
                 if point_poly(pointLon=ais_row[2], pointLat=ais_row[3], polygon=each_coordinate_array):
