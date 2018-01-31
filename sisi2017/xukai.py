@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+import pymysql
 import gc
 
 from base_func import format_convert, getDist
@@ -230,24 +231,141 @@ def find_criminal_moor():
         criminal_moor_df.to_csv("/home/qiu/Documents/sisi2017/xukai_data/nicolas_moor_20170%s.csv" % date, index=None)
 
 
-def check_criminal_moor():
-    nicolas_moor_list = []
-    for date in range(1, 9):
-        nicolas_moor_df = pd.read_csv("/home/qiu/Documents/sisi2017/xukai_data/nicolas_moor_20170%s.csv" % date)
-        nicolas_moor_list.append(nicolas_moor_df)
-    nicolas_moor2017_df = pd.concat(nicolas_moor_list, ignore_index=True)
-    nicolas_moor2017_df = nicolas_moor2017_df.loc[:, ['mmsi', 'begin_time', 'end_time', 'nowPortName',
-                                                      'nowPortLon', 'nowPortLat']]
-    nicolas_moor2017_gdf = nicolas_moor2017_df.groupby('mmsi')
-    for mmsi, value in nicolas_moor2017_gdf:
-        print(mmsi)
+def nm():
+    """
+    内贸船舶任务
+    :return:
+    """
+    # 链接数据库，获取洋山海事局船舶数据
+    conn = pymysql.connect(host='192.168.1.63', port=3306, user='root', passwd='traffic170910@0!7!@#3@1',
+                           db='dbtraffic', charset='utf8')
+    cur = conn.cursor()
+
+    # 获取洋山泊位信息
+    select_sql = """
+                        SELECT * FROM cbjbxx
+                        """
+    cur.execute(select_sql)
+
+    nm_ship_list = []
+    for line in list(cur.fetchall()):
+        try:
+            nm_chineses_name = line[3]
+            nm_english_name = line[4]
+            imo = line[4].replace(" ", "")
+            company1 = line[31]
+            company2 = line[32]
+            mmsi = int(line[40].replace(" ", ""))
+            nm_ship_list.append([nm_chineses_name, nm_english_name, imo, company1, company2, mmsi])
+        except Exception as e:
+            print(e)
+
+    ship_static_df = pd.DataFrame(nm_ship_list)
+    ship_static_df.columns = ["chinese_name", "english_name", "imo", "company1", "company2", "mmsi"]
+    ship_static_df['mmsi'] = ship_static_df['mmsi'].astype(int)
+    print(ship_static_df.dtypes)
+    print(len(ship_static_df))
+    print("--------------------------------")
+
+    # 获取周部门的船舶数据
+    zhou_static_df = pd.read_excel("/home/qiu/Documents/sisi2017/zhoudequan_data/船舶匹配第一次.xlsx")
+    print(zhou_static_df.dtypes)
+    print(len(zhou_static_df))
+    print("--------------------------------")
+    # input("--------")
+
+    # 匹配mmsi
+    intersection_df = ship_static_df[ship_static_df['mmsi'].isin(zhou_static_df["MMSI"])]
+    print(len(intersection_df))
+    return intersection_df
+
+
+def get_nm_moor(nm_statif_df):
+    """
+    获取内贸船舶的停泊事件
+    :return:
+    """
+    for month in range(1, 9):
+        print(month)
+        moor_df = pd.read_csv("/home/qiu/Documents/sisi2017/xukai_data/nm_moor_20170%s.csv" % month)
+        # moor_df.columns = ["mmsi", "begin_time", "end_time", "apart_time",
+        #                    "begin_lon", "begin_lat", "begin_hdg", "begin_sog", "begin_cog",
+        #                    "end_lon", "end_lat", "end_hdg", "end_sog", "end_cog",
+        #                    "point_num", "avg_lon", "avg_lat", "var_hdg", "var_cog", "avg_hdgMcog",
+        #                    "avg_sog", "var_sog", "max_sog", "maxSog_cog",
+        #                    "max_rot", "var_rot", "draught", "avgSpeed", "zone_id", "navistate",
+        #                    "nowPortName", "nowPortLon", "nowPortLat"]
+        nm_moor_df = moor_df[moor_df['mmsi'].isin(nm_statif_df['mmsi'])]
+        nm_moor_df = nm_moor_df[nm_moor_df["nowPortName"] != "None"]
+        nm_moor_df.to_csv("/home/qiu/Documents/sisi2017/xukai_data/nm_moor_20170%s.csv" % month, index=None)
+
+
+def filter_nm_ningbo():
+    """
+    筛选出内贸船舶中到过宁波的停泊事件
+    :return:
+    """
+    nm_moor_df1 = pd.read_csv("/home/qiu/Documents/sisi2017/xukai_data/nm_moor_201701.csv")
+    nm_moor_df2 = pd.read_csv("/home/qiu/Documents/sisi2017/xukai_data/nm_moor_201702.csv")
+    nm_moor_df3 = pd.read_csv("/home/qiu/Documents/sisi2017/xukai_data/nm_moor_201703.csv")
+    nm_moor_df = pd.concat([nm_moor_df1, nm_moor_df2, nm_moor_df3], ignore_index=True)
+
+    nm_moor_df = nm_moor_df.loc[:, ['mmsi', "begin_time", "end_time", "nowPortName"]]
+    nm_moor_df = nm_moor_df.sort_values(by=['mmsi', "begin_time"])
+
+    nm_statif_df = pd.read_csv('/home/qiu/Documents/sisi2017/xukai_data/nm_static.csv')
+
+    nm_ningbo_moor = []
+    for line in np.array(nm_moor_df):
+        if 'ningbo' in line[3]:
+            nm_ningbo_moor.append([line[0], line[1], line[2], line[3]])
+
+    nm_ningbo_moor_df = pd.DataFrame(nm_ningbo_moor, columns=['mmsi', "begin_time", "end_time", "nowPortName"])
+    nm_moor_statif_df = pd.merge(nm_ningbo_moor_df, nm_statif_df, how='outer', on='mmsi')
+    print(nm_moor_statif_df.head())
+
+    company_list = []
+    for line in np.array(nm_moor_statif_df):
+        company1_bool = False
+        company2_bool = False
+
+        if str(line[7]).replace(" ", "").replace("-", ""):
+            company_list.append(str(line[7]).replace(" ", "").replace("-", ""))
+            continue
+        else:
+            company1_bool = True
+
+        if str(line[8]).replace(" ", "").replace("-", ""):
+            company_list.append(str(line[8]).replace(" ", "").replace("-", ""))
+            continue
+        else:
+            company2_bool = True
+
+        if ~(company1_bool | company2_bool):
+            company_list.append('暂无')
+
+    print(len(company_list), len(nm_moor_statif_df))
+    # input("------1-----")
+    nm_moor_statif_df['company'] = company_list
+    nm_moor_statif_gdf = nm_moor_statif_df.groupby('company')
+    company_ship_list = []
+    for company, value in nm_moor_statif_gdf:
+        count = 1
+        index = 0
         value_array = np.array(value)
-        for line in value_array:
-            nowPortName = line[-3].lower()
-            if 'shanghai' in nowPortName:
-                print(line)
-                input("-----------------------------")
+        while index < len(value) - 1:
+            if (value_array[index, 2] - value_array[index+1, 1]) > 12 * 3600:
+                count += 1
+            index += 1
+        company_ship_list.append([company.replace(",", ""), count])
+
+    company_ship_df = pd.DataFrame(company_ship_list, columns=['company', 'count'])
+    company_ship_df.to_csv("/home/qiu/Documents/sisi2017/xukai_data/nm_moor_result_201701-03.csv", index=None)
+    return company_ship_df
 
 
 if __name__ == "__main__":
-    cut_line()
+    # intersection_df = nm()
+    # get_nm_moor(intersection_df)
+    company_ship_df = filter_nm_ningbo()
+    # company_ship_df.to_csv('/home/qiu/Documents/sisi2017/xukai_data/nm_result_201701.csv', index=None)

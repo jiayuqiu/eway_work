@@ -131,6 +131,22 @@ def main_route_statistic(cape_df):
                                     "%s--%s.csv" % (port_pair[0], port_pair[1]), index=None)
 
 
+def get_cape_ais_dynamic(bm_cape_df):
+    """
+    获取cape型船舶的动态AIS数据
+    :param bm_cape_df: cape型船舶的静态数据
+    :return:
+    """
+    month_str = "01"
+    for date in range(1, 32):
+        if date < 10:
+            date_str = "0" + str(date)
+        else:
+            date_str = str(date)
+
+        ais_df = pd.read_csv("/media/qiu/新加卷/2017/%s/date_1" % month_str, header=None)
+
+
 if __name__ == "__main__":
     bm_cape_df = match_cape_moor()
 
