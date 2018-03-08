@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>查看用户列表</title>
+</head>
+<body bgcolor="#f5fafe">
+<table border="1">
+<tr>
+    <th>帐号</th>
+    <th>密码</th>
+    <th>姓名</th>
+    <th>权限</th>
+    <th>短信通知</th>
+    <th>手机</th>
+    <th>邮件通知</th>
+    <th>邮箱地址</th>
+    <th>是否弹窗</th>
+</tr>
+{% for index in range(userNum) %}
+
+<tr>
+    <th>{{user_list[index][0].encode('utf-8')}}</th>
+    <th>{{user_list[index][1].encode('utf-8')}}</th>
+    <th>{{user_list[index][2].encode('utf-8')}}</th>
+    <th>{{user_list[index][3]}}</th>
+    <th>{% if user_list[index][4] == 1 %}是{% else %}否{% endif %}</th>
+    <th>{{user_list[index][5].encode('utf-8')}}</th>
+    <th>{% if user_list[index][6] == 1 %}是{% else %}否{% endif %}</th>
+    <th>{{user_list[index][7].encode('utf-8')}}</th>
+    <th>{% if user_list[index][8] == 1 %}是{% else %}否{% endif %}</th>
+</tr>
+{% endfor %}
+
+</table>
+</body>
+</html>

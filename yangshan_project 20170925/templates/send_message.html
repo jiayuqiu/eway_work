@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test</title>
+    <style>
+		html,body {
+			margin: 0;
+			padding: 0;
+		}
+
+		.wrapper {
+			position: relative;
+			margin: 10% auto 0;
+			width: 90%;
+			overflow: hidden;
+			border: solid 0px black;
+		}
+
+		.left-side {
+			float: left;
+			width: 65%;
+			border: solid 0px black;
+		}
+
+		label {
+			display: inline-block;
+			width: 100px;
+			vertical-align: top;
+		}
+
+		input[type='text'] {
+			width: 600px;
+		}
+
+		textarea {
+			width: 600px;
+			height: 300px;
+			resize: none;
+		}
+
+		.right-side {
+			float: right;
+			width: 30%;
+			border: solid 0px black;
+		}
+
+		li {
+			cursor: pointer;
+		}
+	</style>
+</head>
+<body bgcolor="#f5fafe">
+
+	<form action="/sendMsgResult" method="post" id="mainForm">
+		<div class="wrapper">
+			<div class="left-side">
+				<div class="addrs">
+					<label for="addrs">发送给:</label>
+					<input type="text" value="{{tel}}" name="addrs" id="addrs">
+					<input type="hidden" name="to" id="to">
+				</div>
+				<div class="content">
+					<label for="message">短信内容:</label>
+					<textarea name="message" id="message" >{{message}}</textarea>
+				</div>
+				<hr />
+				<div>
+					<button type="submit">提交</button>
+				</div>
+			</div>
+
+		</div>
+		{% if error_message %}
+		<div style="color:red">{{ error_message }}</div>
+		{% endif %}
+	</form>
+</body>
+
+</html>

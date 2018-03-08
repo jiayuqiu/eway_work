@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>在泊船舶预控</title>
+</head>
+<body bgcolor="#f5fafe">
+
+    <form action="/stoping_input" method="post" enctype="multipart/form-data">
+        <div>
+            <span>
+                <span>上传</span>
+                <input type="file" name="plan_file">
+            </span>
+        </div>
+
+        <div>
+            <br>
+            请输入天气情况，默认值为实时天气数据
+            <br>
+            今日最大风力（级）：<input type="text" name="max_wind_morning" value="{{max_wind}}">
+            <br>
+        </div>
+
+        <p><button type="submit">确认</button></p>
+    </form>
+
+</body>
+</html>

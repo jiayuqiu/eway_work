@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>船舶数据</title>
+</head>
+<body bgcolor="#f5fafe">
+<table border="1">
+<tr>
+    <th>船舶类型</th>
+    <th>名称</th>
+    <th>TEU</th>
+    <th>载重吨</th>
+    <th>吃水</th>
+    <th>国籍</th>
+    <th>制造时间</th>
+    <th>制造月份</th>
+    <th>制造商</th>
+</tr>
+
+{% for index in plan_suit_df %}
+<tr>
+    <th>{{index[0]}}</th>
+    <th>{{index[1]}}</th>
+    <th>{{index[2]}}</th>
+    <th>{{index[4]}}</th>
+    <th>{{index[5]}}</th>
+    <th>{{index[6]}}</th>
+    <th>{{index[7]}}</th>
+    <th>{{index[8]}}</th>
+    <th>{{index[9]}}</th>
+
+</tr>
+{% endfor %}
+
+</table>
+</body>
+</html>

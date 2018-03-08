@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>预警参数</title>
+</head>
+<body bgcolor="#f5fafe">
+
+<table border="1">
+    <caption>目前参数，风力单位：级;能见度单位：米</caption>
+    <tr>
+        <th>预警等级</th>
+        <th>最小平均风力</th>
+        <th>最大平均风力</th>
+        <th>最小阵风风力</th>
+        <th>最大阵风风力</th>
+        <th>最小能见度</th>
+        <th>最大能见度</th>
+    </tr>
+    {% for line in para_list %}
+    <tr>
+        <th>{% if line[0]==1 %}
+            蓝色预警
+            {% elif line[0]==2 %}
+            黄色预警
+            {% elif line[0]==3 %}
+            橙色预警
+            {% elif line[0]==4 %}
+            红色预警
+            {% endif %}</th>
+        <th>{{line[1]}}</th>
+        <th>{{line[2]}}</th>
+        <th>{{line[3]}}</th>
+        <th>{{line[4]}}</th>
+        <th>{{line[5]}}</th>
+        <th>{{line[6]}}</th>
+    </tr>
+    {% endfor %}
+</table>
+<br>
+
+<form action="/change_sucess" method="post">
+    <table border="1">
+    <caption>请修改表格，风力单位：级;能见度单位：米</caption>
+    <tr>
+        <th>预警等级</th>
+        <th>最小平均风力</th>
+        <th>最大平均风力</th>
+        <th>最小阵风风力</th>
+        <th>最大阵风风力</th>
+        <th>最小能见度</th>
+        <th>最大能见度</th>
+    </tr>
+    <tr>
+        <th>蓝色预警</th>
+        <th>
+        <input type="text" value="6" placeholder="6" name="blue_min_avg_wind"></th>
+        <th>
+        <input type="text" value="7" placeholder="7" name="blue_max_avg_wind"></th>
+        <th>
+        <input type="text" value="7" placeholder="7" name="blue_min_zf_wind"></th>
+        <th>
+        <input type="text" value="9" placeholder="9" name="blue_max_zf_wind"></th>
+        <th>
+        <input type="text" value="500" placeholder="0" name="blue_min_njd"></th>
+        <th>
+        <input type="text" value="1000" placeholder="0" name="blue_max_njd"></th>
+    </tr>
+    <tr>
+        <th>黄色预警</th>
+        <th>
+        <input type="text" value="8" placeholder="8" name="yellow_min_avg_wind"></th>
+        <th>
+        <input type="text" value="9" placeholder="9" name="yellow_max_avg_wind"></th>
+        <th>
+        <input type="text" value="10" placeholder="10" name="yellow_min_zf_wind"></th>
+        <th>
+        <input type="text" value="11" placeholder="11" name="yellow_max_zf_wind"></th>
+        <th>
+        <input type="text" value="200" placeholder="0" name="yellow_min_njd"></th>
+        <th>
+        <input type="text" value="500" placeholder="0" name="yellow_max_njd"></th>
+        <th>
+    </tr>
+    <tr>
+        <th>橙色预警</th>
+        <th>
+        <input type="text" value="10" placeholder="10" name="orange_min_avg_wind"></th>
+        <th>
+        <input type="text" value="11" placeholder="11" name="orange_max_avg_wind"></th>
+        <th>
+        <input type="text" value="12" placeholder="12" name="orange_min_zf_wind"></th>
+        <th>
+        <input type="text" value="13" placeholder="13" name="orange_max_zf_wind"></th>
+        <th>
+        <input type="text" value="50" placeholder="0" name="orange_min_njd"></th>
+        <th>
+        <input type="text" value="200" placeholder="0" name="orange_max_njd"></th>
+    </tr>
+    <tr>
+        <th>红色预警</th>
+        <th>
+        <input type="text" value="12" placeholder="12" name="red_min_avg_wind">
+        </th>
+        <th>
+        <input type="text" value="99" placeholder="99" name="red_max_avg_wind">
+        <th>
+        <input type="text" value="14" placeholder="14" name="red_min_zf_wind">
+        </th>
+        <th>
+        <input type="text" value="99" placeholder="99" name="red_max_zf_wind">
+        </th>
+        <th>
+        <input type="text" value="0" placeholder="0" name="red_min_njd">
+        </th>
+        <th>
+        <input type="text" value="50" placeholder="0" name="red_max_njd">
+        </th>
+    </tr>
+</table>
+    <br>
+    <button type="submit">确认</button>
+</form>
+
+</body>
+</html>

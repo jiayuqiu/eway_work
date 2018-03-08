@@ -1,0 +1,173 @@
+<!--file="../inc/NoSql.asp"-->
+<!--file="../inc/const.asp"-->
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title></title>
+<link href="{{url_for('static', filename='css.css')}}" type="text/css" rel="stylesheet">
+<style type="text/css">
+<!--
+.STYLE1 {
+	color: #FF6600;
+	font-weight: bold;
+}
+.STYLE2 {color: #999999}
+-->
+</style>
+</head>
+
+
+<body>
+<table width="98%" align="center" cellspacing="0" cellpadding="0" border="0">
+  <tbody><tr>
+    <td><table width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td width="52"><img src="{{ url_for('static', filename = 'main_1.jpg') }}" width="52" height="55"></td>
+        <td class="title1" background="{{ url_for('static', filename = 'main_2.jpg') }}">登录成功</td>
+        <td width="52"><img src="{{ url_for('static', filename = 'main_3.jpg') }}" width="52" height="55"></td>
+      </tr>
+    </tbody></table></td>
+  </tr>
+  <tr>
+    <td><table width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td width="15" background="{{url_for('static', filename='main_4.gif')}}">&nbsp;</td>
+        <td background="{{url_for('static', filename='main_9.gif')}}"><table class="table" width="98%" align="center" cellspacing="0" cellpadding="0" border="0">
+          <tbody><tr>
+            <td class="td helptxt">
+<table width="100%" cellspacing="0" cellpadding="0" border="0">
+<tbody><tr> 
+<td height="5" align="right"></td>
+</tr>
+<tr> 
+<td height="22" align="center"><span class="STYLE1"><b>欢迎管理员：<font color="#FF0000"></font> 使用本系统</b></span></td>
+</tr>
+<tr> 
+<td height="18" align="center"><b> 
+</b></td>
+</tr>
+<tr> 
+<td> 
+<table width="570" height="100%" align="center" cellspacing="0" cellpadding="0" border="0">
+<tbody><tr height="100%" align="center"><td width="100%">
+  <table bordercolorlight="#c0c0c0" bordercolordark="#FFFFFF" width="100%" height="52" align="center" cellspacing="0" cellpadding="4" border="1">
+    <tbody><tr>
+      <td colspan="2" height="27" align="center" bgcolor="#ffffff">版权信息</td>
+    </tr>
+    <tr>
+      <td width="26%" height="23"><div align="left">版权所有：</div></td>
+      <td width="74%" height="23">上海国际航运研究中心 @2008-2016</td>
+    </tr>
+  </tbody></table>
+  <br>
+  <table bordercolorlight="#c0c0c0" bordercolordark="#FFFFFF" width="100%" height="52" align="center" cellspacing="0" cellpadding="4" border="1">
+    <tbody><tr>
+      <td colspan="2" height="27" align="center" bgcolor="#ffffff">网站管理情况</td>
+    </tr>
+    <tr>
+      <td width="26%" height="23"><div align="left">文章总量：</div></td>
+      <td width="74%" height="23">
+      	43922篇
+      </td>
+    </tr>
+    <tr>
+      <td width="26%" height="23"><div align="left">待审文章：</div></td>
+      <td width="74%" height="23">
+      	<a href="http://sisi-smu.org/admin/Admin_News.asp?WhichLanmu=28">International Shipping</a>(13篇)&nbsp;<a href="http://sisi-smu.org/admin/Admin_News.asp?WhichLanmu=24">News</a>(12篇)&nbsp;<a href="http://sisi-smu.org/admin/Admin_News.asp?WhichLanmu=71">观点聚焦</a>(2篇)&nbsp;<a href="http://sisi-smu.org/admin/Admin_News.asp?WhichLanmu=3">活动报道</a>(2篇)&nbsp;
+      </td>
+    </tr>
+  </tbody></table>
+  <br>
+  <table bordercolorlight="#c0c0c0" bordercolordark="#FFFFFF" width="100%" height="384" cellspacing="0" cellpadding="1" border="1">
+  <tbody><tr><td colspan="2" class="red_3" height="27" align="center" bgcolor="#ffffff">服务器的有关参数</td>
+  </tr>
+  <tr><td width="26%" height="23">&nbsp;服务器名：</td>
+  <td width="74%" height="23">&nbsp;
+    sisi-smu.org</td></tr>
+  <tr><td height="23">&nbsp;服务器IP：</td>
+  <td height="23">&nbsp;
+    10.72.36.102</td></tr>
+  <tr><td height="23">&nbsp;服务器端口：</td>
+  <td height="23">&nbsp;
+    80</td></tr>
+  <tr><td height="23">&nbsp;服务器时间：</td>
+  <td height="23">&nbsp;
+    2016-11-4 16:28:38</td></tr>
+  <tr><td height="23">&nbsp;IIS版本：</td>
+  <td height="23">&nbsp;
+    Microsoft-IIS/6.0</td></tr>
+  <tr><td height="23">&nbsp;服务器操作系统：</td>
+  <td height="23">&nbsp;
+    </td></tr>
+  <tr><td height="23">&nbsp;脚本超时时间：</td>
+  <td height="23">&nbsp;
+    90 秒</td></tr>
+  <tr><td height="23">&nbsp;站点物理路径：</td>
+  <td height="23">&nbsp;
+    D:\Websites\SISI\</td></tr>
+  <tr><td height="23">&nbsp;服务器CPU数量：</td>
+  <td height="23">&nbsp;
+     个</td></tr>
+  <tr><td height="23">&nbsp;服务器解译引擎：</td>
+  <td height="23">&nbsp;
+    VBScript/5.6.8856</td></tr>
+  <tr><td colspan="2" class="red_3" height="23" align="center" bgcolor="#ffffff">组件支持有关参数</td>
+  </tr>
+  <tr><td height="23">&nbsp;数据库(ADO)支持：</td>
+  <td height="23">&nbsp;
+    <b>√</b> （支持）</td></tr>
+  <tr><td height="23">&nbsp;FSO文本读写：</td>
+  <td height="23">&nbsp;
+    <b>√</b> （支持）</td></tr>
+  <tr><td height="23">&nbsp;Stream文件流：</td>
+  <td height="23">&nbsp;
+    <b>√</b> （支持）</td></tr>
+  <tr><td height="23">&nbsp;Jmail组件支持：</td>
+  <td height="23">&nbsp;
+    <font class="red"><b>×</b></font> （不支持）</td></tr>
+  <tr><td height="23">&nbsp;CDONTS组件支持：</td>
+  <td height="23">&nbsp;
+    <font class="red"><b>×</b></font> （不支持）</td></tr>
+  </tbody></table>
+</td></tr>
+</tbody></table>
+<br>
+</td>
+</tr>
+</tbody></table>
+              <br>
+              网站后台管理系统V2 Build 20060822 （最佳使用平台：浏览器IE5.5+ ,分辨率：1204*768）<br>&nbsp;<br>
+              软 件：徐张生视品牌创意工作室<br>
+              网 址：<a href="http://www.sk-vision.com/" target="_blank">http://www.sk-vision.com</a><br>
+              电 邮：<a href="mailto:skvision@163.com;skvision@fancyparty.com">skvision@163.com;skvision@fancyparty.com</a><br>&nbsp;<br>
+              硬 件：“卟”轻松互联<br>
+              电 话：021-58852812<br>
+              地 址：上海市浦东沈家弄路870弄4号102室（邮编200135） <br>
+              网 址：<a href="http://www.boondns.com/" target="_blank">http://www.boondns.com</a><br>
+              电 邮：<a href="mailto:webmaster@fancyparty.com">webmaster@fancyparty.com</a><br></td>
+          </tr>
+        </tbody></table></td>
+        <td width="15" background="{{url_for('static', filename='main_5.gif')}}">&nbsp;</td>
+      </tr>
+    </tbody></table></td>
+  </tr>
+  <tr>
+    <td><table width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td width="15" background="{{url_for('static', filename='main_4.gif')}}">&nbsp;</td>
+        <td background="{{url_for('static', filename='main_9.gif')}}">&nbsp;</td>
+        <td width="15" background="{{url_for('static', filename='main_6.gif')}}">&nbsp;</td>
+      </tr>
+    </tbody></table></td>
+  </tr>
+  <tr>
+    <td><table width="100%" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td width="52"><img src="{{url_for('static', filename='main_6.gif')}}" width="52" height="16"></td>
+        <td background="{{url_for('static', filename='main_7f')}}">&nbsp;</td>
+        <td width="52"><img src="{{url_for('static', filename='main_8.gif')}}" width="52" height="16"></td>
+      </tr>
+    </tbody></table></td>
+  </tr>
+</tbody></table>
+
+</body></html>

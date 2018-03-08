@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>东海大桥预控</title>
+</head>
+<body>
+
+<body bgcolor="#f5fafe">
+
+<form action="/bridge_input" method="post" enctype="multipart/form-data">
+    <div>
+        <span>
+            <span>上传</span>
+            <input type="file" name="plan_file">
+        </span>
+    </div>
+
+    <div>
+        <br>
+        请输入天气情况，默认值为实时抓取到的天气数据
+        <br>
+        今日最大风力（级）：<input type="text" name="max_wind" value="{{max_wind}}">
+        <br>
+        今日最小能见度（米）: <input type="text" name="min_njd" value="{{minNJD}}">
+        <br>
+        今日最大潮高（米）：<input type="text" name="max_water_height" value="5">
+        <br>
+        通航孔限制高度（米）：<input type="text" name="max_height" value="17.5">
+        <br>
+        通航孔限制载重吨（吨）：<input type="text" name="max_dwt" value="5000">
+    </div>
+
+    <p><button type="submit">确认</button></p>
+</form>
+
+</body>
+</html>

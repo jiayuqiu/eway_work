@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>查看用户列表</title>
+</head>
+<body bgcolor="#f5fafe">
+<table width="500" border="1">
+<tr>
+    <th>姓名</th>
+    <th>邮箱地址</th>
+    <th>手机</th>
+</tr>
+{% for index in range(sendToNum) %}
+
+<tr>
+    <th>{{sendTo_list[index][0].encode('utf-8')}}</th>
+    <th>{{sendTo_list[index][1].encode('utf-8')}}</th>
+    <th>{{sendTo_list[index][2].encode('utf-8')}}</th>
+</tr>
+{% endfor %}
+
+</table>
+</body>
+</html>

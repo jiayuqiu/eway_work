@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>导入成功</title>
+</head>
+<body bgcolor="#f5fafe">
+在泊船舶表导入成功！
+
+<table width="500" border="1">
+<tr>
+    <th>中文船名</th>
+    <th>英文船名</th>
+    <th>泊位</th>
+    <th>能否停泊</th>
+    <th>风力</th>
+</tr>
+
+{% for index in range(plan_len) %}
+<tr>
+    <th>{{plan_suit_df.iloc[index, 0].encode('utf-8')}}</th>
+    <th>{{plan_suit_df.iloc[index, 1].encode('utf-8')}}</th>
+    <th>{{plan_suit_df.iloc[index, 2]}}</th>
+    <th>{{plan_suit_df.iloc[index, 4]}}</th>
+    {% if plan_suit_df.iloc[index, 5] %}<th bgcolor="red">×</th>{% endif %}
+</tr>
+{% endfor %}
+
+</table>
+
+</body>
+</html>

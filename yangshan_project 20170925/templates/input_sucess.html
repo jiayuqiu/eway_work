@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>导入成功</title>
+</head>
+<body bgcolor="#f5fafe">
+计划表导入成功！
+
+<table border="1">
+<tr>
+    <th>靠离时间</th>
+    <th>靠/开</th>
+    <th>中文船名</th>
+    <th>英文船名</th>
+    <th>船长度</th>
+    <th>吨级</th>
+    <th>泊位</th>
+    <th>船舶类型</th>
+    <th>是否可行</th>
+    <th>码头</th>
+    <th>风力</th>
+    <th>能见度</th>
+</tr>
+
+{% for index in range(plan_len) %}
+<tr>
+    <th>{{plan_suit_df.iloc[index, 0].encode('utf-8')}}</th>
+    <th>{{plan_suit_df.iloc[index, 1].encode('utf-8')}}</th>
+    <th>{{plan_suit_df.iloc[index, 2]}}</th>
+    <th>{{plan_suit_df.iloc[index, 3]}}</th>
+    <th>{{plan_suit_df.iloc[index, 5]}}</th>
+    <th>{{plan_suit_df.iloc[index, 11]}}</th>
+    <th>{{plan_suit_df.iloc[index, 4]}}</th>
+    <th>{{plan_suit_df.iloc[index, 12]}}</th>
+    <th>{{plan_suit_df.iloc[index, 7]}}</th>
+    {% if plan_suit_df.iloc[index, 8] %}<th bgcolor="red">×</th>
+    {% else %}<th></th>
+    {% endif %}
+    {% if plan_suit_df.iloc[index, 10] %}<th bgcolor="red">×</th>
+    {% else %}<th></th>
+    {% endif %}
+    {% if plan_suit_df.iloc[index, 9] %}<th bgcolor="red">×</th>
+    {% else %}<th></th>
+    {% endif %}
+</tr>
+{% endfor %}
+
+</table>
+
+</body>
+</html>

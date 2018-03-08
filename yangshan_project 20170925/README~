@@ -1,0 +1,11 @@
+重新梳理海事局天气预警等功能的代码
+
+文档说明：
+demo.py:网上的flask用户登录demo
+shanghai.py：从上海气象台抓取气象报告程序段
+zsqxj.py：从舟山气象局抓取气象报告程序段
+get_warning_main.py：将抓取到的气象报告进行预警
+report.py：将抓取到的数据、分析出的预警数据入库
+new_weather_source.py：洋山新数据源抓取数据程序段，主要抓取能见度数据
+Send_Email.py：邮件发送程序段
+ship_control.py：船舶预控需要的功能函数

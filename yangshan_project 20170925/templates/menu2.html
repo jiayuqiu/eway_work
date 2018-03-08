@@ -1,0 +1,353 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>管理页面</title>
+<style type="text/css">
+<!--
+BODY {
+	FONT-SIZE: 12px;
+	FONT-FAMILY:  "宋体";
+	background-color: #f5fafe;
+	margin-left: 0px;
+	margin-top: 10px;
+	margin-right: 0px;
+	margin-bottom: 0px;
+	scrollbar-face-color: #F5FAFE;
+	scrollbar-highlight-color: #FFFFFF;
+	scrollbar-shadow-color: #cccccc;
+	scrollbar-3dlight-color: #dbeedd;
+	scrollbar-arrow-color: #cccccc;
+	scrollbar-track-color: #F5FAFE;
+	scrollbar-darkshadow-color: #f3faf4;
+}
+.menutitle {
+	color: #FFFFFF;
+	filter: Glow(Color=#0275B9, Strength=1);
+	letter-spacing: 8px;
+	font-size: 12px;
+	padding-top: 4px;
+}
+.menubg {
+	border: 1px solid #82ADCA;
+	background-color: #F2F8FD;
+}
+.menubg1 {
+	background-color: #F2F8FD;
+	font-size: 12px;
+	color: #001B51;
+	height: 20px;
+	text-align: center;
+	padding-top: 3px;
+	letter-spacing: 2px;
+}
+.menubg2 {
+	font-size: 12px;
+	color: #004FA6;
+	text-align: center;
+	height: 20px;
+	background-image: url(images/menu_bg.gif);
+	background-repeat: no-repeat;
+	background-position: center;
+	padding-top: 3px;
+	letter-spacing: 2px;
+}
+a{behavior:url(images/link.htc)}
+a:link {font-size:12px; color: #001B51;text-decoration: none;}
+a:visited {font-size:12px; color: #001B51;text-decoration: none;}
+a:hover {font-size:12px; color: #004FA6;text-decoration: none;}
+.title {cursor:pointer;}
+-->
+</style>
+<script language="javascript1.2">
+function MM_preloadImages() { //v3.0
+  var d=document; if(d.images){ if(!d.MM_p) d.MM_p=new Array();
+    var i,j=d.MM_p.length,a=MM_preloadImages.arguments; for(i=0; i<a.length; i++)
+    if (a[i].indexOf("#")!=0){ d.MM_p[j]=new Image; d.MM_p[j++].src=a[i];}}
+}
+</script>
+<script src="{{url_for('static', filename='prototype.js')}}" type="text/javascript"></script>
+<script src="{{url_for('static', filename='moo.js')}}" type="text/javascript"></script>
+<script src="{{url_for('static', filename='moo_002.js')}}" type="text/javascript"></script>
+</head>
+
+<body onload="MM_preloadImages('{{url_for('static', filename='menu_bg.gif')}}','{{url_for('static', filename='menu_title3b.jpg')}}')">
+<div id="container">
+
+  <div class="title">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3"><img src="{{url_for('static', filename='menu_1.gif')}}" width="188" height="14"></td>
+      </tr>
+      <tr>
+        <td width="39"><img src="{{url_for('static', filename='menu_title1.jpg')}}" width="39" height="26"></td>
+        <td width="113" background="{{url_for('static', filename='menu_title2.jpg')}}"><table width="113" height="26" cellspacing="0" cellpadding="0" border="0">
+            <tbody><tr>
+              <td class="menutitle">帐号管理</td>
+            </tr>
+          </tbody></table></td>
+        <td width="36"><img src="{{url_for('static', filename='menu_title3b.jpg')}}" class="arrow" width="36" height="26"></td>
+      </tr>
+    </tbody></table>
+  </div>
+  <div class="content" style="visibility: hidden; opacity: 0; overflow: hidden; height: 0px;">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td><table width="188" cellspacing="0" cellpadding="0" border="0">
+            <tbody><tr>
+              <td rowspan="2" width="11" background="{{url_for('static', filename='menu_2.gif')}}">&nbsp;</td>
+              <td width="166"><img src="{{url_for('static', filename='menu_5.gif')}}" width="166" height="3"></td>
+              <td rowspan="2" width="11" background="{{url_for('static', filename='menu_3.gif')}}">&nbsp;</td>
+            </tr>
+            <tr>
+              <td><table class="menubg" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tbody><tr>
+                    <td height="5"></td>
+                  </tr>
+                  <tr>
+                    <td class="menubg1" onmouseover="this.className='menubg2'" onmouseout="this.className='menubg1'"><a href="{{url_for('check_sendTo')}}" target="right">群发列表</a></td>
+                  </tr>
+                  <tr>
+                    <td class="menubg1" onmouseover="this.className='menubg2'" onmouseout="this.className='menubg1'"><a href="{{url_for('add_sendTo')}}" target="right">群发添加</a></td>
+                  </tr>
+                  <tr>
+                    <td class="menubg1" onmouseover="this.className='menubg2'" onmouseout="this.className='menubg1'"><a href="{{url_for('delete_sendTo')}}" target="right">群发删除</a></td>
+                  </tr>
+                  <tr>
+                    <td height="5"></td>
+                  </tr>
+                </tbody></table></td>
+            </tr>
+          </tbody></table></td>
+      </tr>
+    </tbody></table>
+  </div>
+  <div class="bottom">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3" valign="top" height="20"><img src="{{url_for('static', filename='menu_4.gif')}}" width="188" height="15"></td>
+      </tr>
+    </tbody></table>
+  </div>
+
+<div class="title">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3"><img src="{{url_for('static', filename='menu_1.gif')}}" width="188" height="14"></td>
+      </tr>
+      <tr>
+        <td width="39"><img src="{{url_for('static', filename='menu_title1.jpg')}}" width="39" height="26"></td>
+        <td width="113" background="{{url_for('static', filename='menu_title2.jpg')}}"><table width="113" height="26" cellspacing="0" cellpadding="0" border="0">
+            <tbody><tr>
+              <td class="menutitle">数据查询</td>
+            </tr>
+          </tbody></table></td>
+        <td width="36"><img src="{{url_for('static', filename='menu_title3b.jpg')}}" class="arrow" width="36" height="26"></td>
+      </tr>
+    </tbody></table>
+  </div>
+  <div class="content" style="visibility: hidden; opacity: 0; overflow: hidden; height: 0px;">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td><table width="188" cellspacing="0" cellpadding="0" border="0">
+            <tbody><tr>
+              <td rowspan="2" width="11" background="{{url_for('static', filename='menu_2.gif')}}">&nbsp;</td>
+              <td width="166"><img src="{{url_for('static', filename='menu_5.gif')}}" width="166" height="3"></td>
+              <td rowspan="2" width="11" background="{{url_for('static', filename='menu_3.gif')}}">&nbsp;</td>
+            </tr>
+            <tr>
+              <td><table class="menubg" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tbody><tr>
+                    <td height="5"></td>
+                  </tr>
+                  <tr>
+                    <td class="menubg1" onmouseover="this.className='menubg2'" onmouseout="this.className='menubg1'"><a href="{{url_for('find_history')}}" target="right">历史气象</a></td>
+                  </tr>
+                  <tr>
+                    <td class="menubg1" onmouseover="this.className='menubg2'" onmouseout="this.className='menubg1'"><a href="{{url_for('shipStatic')}}" target="right">船舶信息</a></td>
+                  </tr>
+                  <tr>
+                    <td height="5"></td>
+                  </tr>
+                </tbody></table></td>
+            </tr>
+          </tbody></table></td>
+      </tr>
+    </tbody></table>
+  </div>
+  <div class="bottom">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3" valign="top" height="20"><img src="{{url_for('static', filename='menu_4.gif')}}" width="188" height="15"></td>
+      </tr>
+    </tbody></table>
+  </div>
+
+ <div class="title">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3"><img src="{{url_for('static', filename='menu_1.gif')}}" width="188" height="14"></td>
+      </tr>
+      <tr>
+        <td width="39"><img src="{{url_for('static', filename='menu_title1.jpg')}}" width="39" height="26"></td>
+        <td width="113" background="{{url_for('static', filename='menu_title2.jpg')}}"><table width="113" height="26" cellspacing="0" cellpadding="0" border="0">
+            <tbody><tr>
+              <td class="menutitle">船舶预控</td>
+            </tr>
+          </tbody></table></td>
+        <td width="36"><img src="{{url_for('static', filename='menu_title3b.jpg')}}" class="arrow" width="36" height="26"></td>
+      </tr>
+    </tbody></table>
+  </div>
+  <div class="content" style="visibility: hidden; opacity: 0; overflow: hidden; height: 0px;">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td><table width="188" cellspacing="0" cellpadding="0" border="0">
+            <tbody><tr>
+              <td rowspan="2" width="11" background="{{url_for('static', filename='menu_2.gif')}}">&nbsp;</td>
+              <td width="166"><img src="{{url_for('static', filename='menu_5.gif')}}" width="166" height="3"></td>
+              <td rowspan="2" width="11" background="{{url_for('static', filename='menu_3.gif')}}">&nbsp;</td>
+            </tr>
+            <tr>
+              <td><table class="menubg" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tbody><tr>
+                    <td height="5"></td>
+                  </tr>
+                  <tr>
+                    <td class="menubg1" onmouseover="this.className='menubg2'" onmouseout="this.className='menubg1'"><a href="{{url_for('io_control')}}" target="right">靠离泊计划预控</a></td>
+                  </tr>
+                  <tr>
+                    <td class="menubg1" onmouseover="this.className='menubg2'" onmouseout="this.className='menubg1'"><a href="{{url_for('bridge_control')}}" target="right">东海大桥通航预控</a></td>
+                  </tr>
+                  <tr>
+                    <td class="menubg1" onmouseover="this.className='menubg2'" onmouseout="this.className='menubg1'"><a href="{{url_for('stoping_control')}}" target="right">在泊船舶停泊预控</a></td>
+                  </tr>
+                  <tr>
+                    <td height="5"></td>
+                  </tr>
+                </tbody></table></td>
+            </tr>
+          </tbody></table></td>
+      </tr>
+    </tbody></table>
+  </div>
+  <div class="bottom">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3" valign="top" height="20"><img src="{{url_for('static', filename='menu_4.gif')}}" width="188" height="15"></td>
+      </tr>
+    </tbody></table>
+  </div>
+
+  <div class="title">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3"><img src="{{url_for('static', filename='menu_1.gif')}}" width="188" height="14"></td>
+      </tr>
+      <tr>
+        <td width="39"><img src="{{url_for('static', filename='menu_title1.jpg')}}" width="39" height="26"></td>
+        <td width="113" background="{{url_for('static', filename='menu_title2.jpg')}}"><table width="113" height="26" cellspacing="0" cellpadding="0" border="0">
+            <tbody><tr>
+              <td class="menutitle"><a href="{{url_for('weather_warning')}}" target="right">天气预警</a></td>
+            </tr>
+          </tbody></table></td>
+        <td width="36"><img src="{{url_for('static', filename='menu_title3b.jpg')}}" class="arrow" width="36" height="26"></td>
+      </tr>
+    </tbody></table>
+  </div>
+
+  <div class="bottom">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3" valign="top" height="20"><img src="{{url_for('static', filename='menu_4.gif')}}" width="188" height="15"></td>
+      </tr>
+    </tbody></table>
+  </div>
+
+
+  <div class="title">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3"><img src="{{url_for('static', filename='menu_1.gif')}}" width="188" height="14"></td>
+      </tr>
+      <tr>
+        <td width="39"><img src="{{url_for('static', filename='menu_title1.jpg')}}" width="39" height="26"></td>
+        <td width="113" background="{{url_for('static', filename='menu_title2.jpg')}}"><table width="113" height="26" cellspacing="0" cellpadding="0" border="0">
+            <tbody><tr>
+              <td class="menutitle"><a href="{{url_for('send_email')}}" target="right">信息通知</a></td>
+            </tr>
+          </tbody></table></td>
+        <td width="36"><img src="{{url_for('static', filename='menu_title3b.jpg')}}" class="arrow" width="36" height="26"></td>
+      </tr>
+    </tbody></table>
+  </div>
+
+  <div class="bottom">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3" valign="top" height="20"><img src="{{url_for('static', filename='menu_4.gif')}}" width="188" height="15"></td>
+      </tr>
+    </tbody></table>
+  </div>
+
+    <div class="title">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3"><img src="{{url_for('static', filename='menu_1.gif')}}" width="188" height="14"></td>
+      </tr>
+      <tr>
+        <td width="39"><img src="{{url_for('static', filename='menu_title1.jpg')}}" width="39" height="26"></td>
+        <td width="113" background="{{url_for('static', filename='menu_title2.jpg')}}"><table width="113" height="26" cellspacing="0" cellpadding="0" border="0">
+            <tbody><tr>
+              <td class="menutitle"><a href="{{url_for('send_message')}}" target="right">短信通知</a></td>
+            </tr>
+          </tbody></table></td>
+        <td width="36"><img src="{{url_for('static', filename='menu_title3b.jpg')}}" class="arrow" width="36" height="26"></td>
+      </tr>
+    </tbody></table>
+  </div>
+
+  <div class="bottom">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3" valign="top" height="20"><img src="{{url_for('static', filename='menu_4.gif')}}" width="188" height="15"></td>
+      </tr>
+    </tbody></table>
+  </div>
+</div>
+
+  <div class="title">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3"><img src="{{url_for('static', filename='menu_1.gif')}}" width="188" height="14"></td>
+      </tr>
+      <tr>
+        <td width="39"><img src="{{url_for('static', filename='menu_title1.jpg')}}" width="39" height="26"></td>
+        <td width="113" background="{{url_for('static', filename='menu_title2.jpg')}}"><table width="113" height="26" cellspacing="0" cellpadding="0" border="0">
+            <tbody><tr>
+              <td class="menutitle"><a href="{{url_for('change_para')}}" target="right">预警参数</a></td>
+            </tr>
+          </tbody></table></td>
+        <td width="36"><img src="{{url_for('static', filename='menu_title3b.jpg')}}" class="arrow" width="36" height="26"></td>
+      </tr>
+    </tbody></table>
+  </div>
+
+  <div class="bottom">
+    <table width="188" align="center" cellspacing="0" cellpadding="0" border="0">
+      <tbody><tr>
+        <td colspan="3" valign="top" height="20"><img src="{{url_for('static', filename='menu_4.gif')}}" width="188" height="15"></td>
+      </tr>
+    </tbody></table>
+  </div>
+</div>
+<script language="javascript1.2">
+	var toggles  = document.getElementsByClassName('title');
+	var contents = document.getElementsByClassName('content');
+	var arrows = document.getElementsByClassName('arrow');
+	var myAccordion = new fx.Accordion(
+		toggles, contents, {opacity: true, duration: 500}
+	);
+	myAccordion.showThisHideOpen(contents[0]);
+</script>
+
+</body></html>

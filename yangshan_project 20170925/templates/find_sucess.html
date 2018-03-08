@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>查询成功</title>
+</head>
+<body bgcolor="#f5fafe">
+查询成功，数据为：
+<table border="1">
+    <tr>
+        <td>日期</td>
+        <td>时间</td>
+        <td>报告</td>
+        <td>能见度</td>
+        <td>地点</td>
+        <td>建议风力等级</td>
+        <td>建议能见度等级</td>
+        <td>确认风力预警</td>
+        <td>确认能见度预警</td>
+        <td>确认时间</td>
+        <td>确认人</td>
+    </tr>
+    {%for index in range(length)%}
+    <tr>
+        <td>{{history[index][0]}}</td>
+        <td>{{history[index][1]}}</td>
+        <td>{{history[index][2]}}</td>
+        <td>{{history[index][3]}}</td>
+        <td>{{history[index][4]}}</td>
+        <td>{{data[index][6]}}</td>
+        <td>{{data[index][11]}}</td>
+        <td>{{data[index][9]}}</td>
+        <td>{{data[index][12]}}</td>
+        <td>{{data[index][10]}}</td>
+        <td>{{chineseName_List[index]}}</td>
+    </tr>
+    {%endfor%}
+</table>
+</body>
+</html>

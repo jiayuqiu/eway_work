@@ -1,0 +1,19 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>管理后台</title>
+</head>
+
+<frameset rows="36,*" cols="*" framespacing="0" frameborder="no" border="0">
+  <frame src="{{url_for('top')}}" name="topFrame" id="topFrame" title="topFrame" scrolling="NO" noresize="noresize">
+  <frameset rows="*" cols="220,*" framespacing="0" frameborder="no" border="0" id="mainframe">
+    <frame src="{{url_for('menu')}}" name="left" id="left" title="left">
+    <frame name="right" id="right" title="right">
+  </frameset>
+  <frame src="{{url_for('pop')}}" name="hiddenFrame" id="hiddenFrame" title=""hiddenFrame scrolling="NO" noresize="noresize"
+  height="0" width="0">
+</frameset>
+
+<div style="position: absolute;top: 0;right: 0">退出登录</div>
+
+</html>

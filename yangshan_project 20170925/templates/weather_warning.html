@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>当前天气报告</title>
+</head>
+<body bgcolor="#f5fafe">
+
+<div>
+
+    <br>
+    {{sh_report}}
+    <br>
+    <br>
+    {{zs_report}}
+    <br>
+    <br>
+    洋山港区24小时内最小能见度将达到：{{minNJD}}，单位：米
+</div>
+
+{% if warning == 0 %}
+<p style="color: green">建议启动预警：暂无预警</p>
+{% endif %}
+{% if warning == 1 %}
+<p style="color: blue">建议启动预警：蓝色大风预警</p>
+{% endif %}
+{% if warning == 2 %}
+<p style="color: yellow">建议启动预警：黄色大风预警</p>
+{% endif %}
+{% if warning == 3 %}
+<p style="color: orange">建议启动预警：橙色大风预警</p>
+{% endif %}
+{% if warning == 4 %}
+<p style="color: red">建议启动预警：红色大风预警</p>
+{% endif %}
+{% if warning == -1 %}
+<p style="color: black">建议启动预警：数据获取有误，请检查气象报告</p>
+{% endif %}
+
+{% if njd_warning == 0 %}
+<p style="color: green">建议启动预警：暂无预警</p>
+{% endif %}
+{% if njd_warning == 1 %}
+<p style="color: blue">建议启动预警：蓝色能见度预警</p>
+{% endif %}
+{% if njd_warning == 2 %}
+<p style="color: yellow">建议启动预警：黄色能见度预警</p>
+{% endif %}
+{% if njd_warning == 3 %}
+<p style="color: orange">建议启动预警：橙色能见度预警</p>
+{% endif %}
+{% if njd_warning == 4 %}
+<p style="color: red">建议启动预警：红色能见度预警</p>
+{% endif %}
+{% if njd_warning == -1 %}
+<p style="color: black">建议启动预警：数据获取有误，请检查气象报告</p>
+{% endif %}
+
+{% if if_conf == 1 and if_conf_njd ==1 %}
+该报告已确认
+<p>确认人：{{conf_man}}</p>
+<p>确认时间：{{conf_time}}</p>
+<p>确认风力等级：{% if conf_level ==0 %}暂无预警
+            {% elif conf_level ==1 %}蓝色
+            {% elif conf_level ==2 %}黄色
+            {% elif conf_level ==3 %}橙色
+            {% elif conf_level ==4 %}红色
+            {% endif %}</p>
+<p>确认能见度等级：{% if conf_level_njd ==0 %}暂无预警
+            {% elif conf_level_njd ==1 %}蓝色
+            {% elif conf_level_njd ==2 %}黄色
+            {% elif conf_level_njd ==3 %}橙色
+            {% elif conf_level_njd ==4 %}红色
+            {% endif %}</p>
+{% else  %}
+该气象未确认
+<form action="/conf_sucess" method="post">
+{% if userLevel == 4 %}
+    {% if warning == 0 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline40">
+            <option type="text" value="0" selected="">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+            <option type="text" value="4">红色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 1 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline41">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+            <option type="text" value="4">红色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 2 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline42">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2" selected="">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+            <option type="text" value="4">红色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 3 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline43">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3" selected="">橙色预警</option>
+            <option type="text" value="4">红色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 4 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline44">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+            <option type="text" value="4" selected="">红色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if njd_warning ==0 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline45">
+            <option type="text" value="0" selected="">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+            <option type="text" value="4">红色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==1 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline46">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+            <option type="text" value="4">红色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==2 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline47">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2" selected="">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+            <option type="text" value="4">红色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==3 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline48">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3" selected="">橙色预警</option>
+            <option type="text" value="4">红色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==4 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline49">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+            <option type="text" value="4" selected="">红色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+{% elif userLevel == 3 %}
+    {% if warning == 0 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline31">
+            <option type="text" value="0" selected="">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 1 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline32">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 2 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline33">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2" selected="">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 3 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline34">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3" selected="">橙色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 4 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline35">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3" selected="">橙色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if njd_warning ==0 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline35">
+            <option type="text" value="0" selected="">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==1 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline36">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==2 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline37">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2" selected="">黄色预警</option>
+            <option type="text" value="3">橙色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==3 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline38">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3" selected="">橙色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==4 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline384">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+            <option type="text" value="3" selected="">橙色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+{% elif userLevel == 2 %}
+
+    {% if warning == 0 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline21">
+            <option type="text" value="0" selected="">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 1 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline22">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 2 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline23">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2" selected="">黄色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 3 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline234">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2" selected="">黄色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 4 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline235">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2" selected="">黄色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if njd_warning ==0 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline25">
+            <option type="text" value="0" selected="">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==1 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline26">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+            <option type="text" value="2">黄色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==2 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline27">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2" selected="">黄色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==3 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline273">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2" selected="">黄色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==4 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline274">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+            <option type="text" value="2" selected="">黄色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+{% elif userLevel == 1 %}
+    {% if warning == 0 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline11">
+            <option type="text" value="0" selected="">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if warning == 1 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline121">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if warning == 2 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline122">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if warning == 3 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline123">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if warning == 4 %}
+    <br>请选择预警等级<br><br>
+    <p>请确认风力预警等级：
+        <select type="text" name='conf_level' id="s1_text1_outline124">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+        </select>
+    </p>
+    {% endif %}
+
+    {% if njd_warning ==0 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline15">
+            <option type="text" value="0" selected="">暂无预警</option>
+            <option type="text" value="1">蓝色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==1 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline16">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==2 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline162">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==3 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline163">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+        </select>
+    </p>
+    {% endif %}
+    {% if njd_warning ==4 %}
+    <p>请确认能见度预警等级：
+        <select type="text" name='conf_level_njd' id="s1_text2_outline164">
+            <option type="text" value="0">暂无预警</option>
+            <option type="text" value="1" selected="">蓝色预警</option>
+        </select>
+    </p>
+    {% endif %}
+{% endif %}
+    <p><button type="submit">确认</button></p>
+</form>
+
+{% endif %}
+
+</body>
+</html>

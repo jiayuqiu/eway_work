@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="300;url={{url_for('pop')}}">
+    <title>弹窗界面</title>
+</head>
+<body>
+{% if if_pop == 1 %}
+
+    <script language="javascript">
+        alert("您有预警未确认，请检查天气预警")
+    </script>
+
+{% endif %}
+</body>
+</html>

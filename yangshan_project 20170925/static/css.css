@@ -1,0 +1,116 @@
+BODY {
+	FONT-SIZE: 12px;
+	FONT-FAMILY:  "ËÎÌå";
+	background-color: #F5FAFE;
+	margin-left: 0px;
+	margin-top: 10px;
+	margin-right: 0px;
+	margin-bottom: 0px;
+	line-height: 200%;
+	color: #333333;
+}
+.table {
+	background-color: #FFFFFF;
+	border: 1px solid #82ADCA;
+}
+.td {
+	height:20px;
+	background-color: #EFF8FE;
+	padding: 1px;
+	font-size: 12px;
+}
+.td2 {
+	height:20px;
+	background-color: #83AED6;
+	padding: 1px;
+	color: #FFFFFF;
+	font-weight: bold;
+}
+.input {
+	font-size: 12px;
+	text-decoration: none;
+	border: 1px solid #82ADCA;
+	background-color: #EEF3F9;
+}
+.file {
+	height: 20px;
+	font-size: 9pt;
+	border: 1px solid #82ADCA;
+	width:400px;
+	background-color: #EEF3F9;
+}
+a{behavior:url(images/link.htc)}
+A:visited {
+	font-size: 12px;
+	color: #333333;
+	text-decoration: none;
+}
+A:link {
+	font-size: 12px;
+	color: #333333;
+	text-decoration: none;
+}
+A:hover {
+	font-size: 12px;
+	color: #ff6600;
+	text-decoration: none;
+}
+.button{
+	height:20px;
+	font-size: 9pt;
+	border:1px solid;
+	border-color:#FFFFFF #82ADCA #82ADCA #FFFFFF;
+	padding:2px 2px 0px 2px;
+	background:#EEF3F9 url(images/menu_main.jpg) 0px -15px;
+}
+
+.btnmodify {
+	background-image: url(images/botton_modify.gif);
+	background-repeat: no-repeat;
+	height: 21px;
+	width: 73px;
+	border-top-width: 0px;
+	border-right-width: 0px;
+	border-bottom-width: 0px;
+	border-left-width: 0px;
+}
+.btnreset {
+	background-image: url(images/botton_reset.gif);
+	background-repeat: no-repeat;
+	height: 21px;
+	width: 73px;
+	border-top-width: 0px;
+	border-right-width: 0px;
+	border-bottom-width: 0px;
+	border-left-width: 0px;
+}
+.title1 {
+	font-family: "¿¬Ìå_GB2312";
+	font-size: 18px;
+	font-weight: bold;
+	color: #002B84;
+	letter-spacing: 5px;
+	padding-top: 14px;
+}
+textarea {
+	font-size: 12px;
+	border: 1px solid #82ADCA;
+	background-color: #EEF3F9;
+}
+td {
+	font-size: 12px;
+}
+.helptxt {
+	font-size: 12px;
+	line-height: 180%;
+	padding: 20px;
+}
+/* Sortable tables */
+table.sortable a.sortheader {
+    color:#ffffff;
+    text-decoration: none;
+}
+table.sortable span.sortarrow {
+    color:#ffffff;
+    text-decoration: none;
+}

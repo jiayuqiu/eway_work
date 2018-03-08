@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>修改用户信息</title>
+</head>
+<body bgcolor="#f5fafe">
+
+<form action="/change_user_sucess" method="post">
+    请输入需要修改的用户帐号：
+    <br>
+    帐号：
+    <br>
+    <input type="text" name="new_username">
+    <br>
+    <br>
+    <br>
+    请输入新的用户信息：
+    <br>
+    密码：
+    <br>
+    <input type="text" name="new_passwd">
+    <br>
+    <br>
+    权限：(1-4)，说明：1 最高发布蓝色预警;2 最高发布黄色预警;3 最高发布橙色预警;4 最高发布红色预警
+    <br>
+    <input type="text" name="new_level">
+    <br>
+    <br>
+    姓名
+    <br>
+    <input type="text" name="chinesename">
+    <br>
+    <br>
+    是否短信通知
+    <br>
+    <select type="text" name='ifMessage' id="s1_text1_outline">
+            <option type="text" value="1">是</option>
+            <option type="text" value="0">否</option>
+    </select>
+    <br>
+    <br>
+    手机
+    <br>
+    <input type="text" name="tel">
+    <br>
+    <br>
+    是否邮件通知
+    <br>
+    <select type="text" name='ifEmail' id="s1_text2_outline">
+            <option type="text" value="1">是</option>
+            <option type="text" value="0">否</option>
+    </select>
+    <br>
+    <br>
+    邮件地址
+    <br>
+    <input type="text" name="emailAddr">
+    <br>
+    <br>
+    是否弹窗通知
+    <br>
+    <select type="text" name='ifPop' id="s1_text3_outline">
+            <option type="text" value="1">是</option>
+            <option type="text" value="0">否</option>
+    </select>
+    <br>
+    <br>
+    <button type="submit">确认</button>
+</form>
+
+</body>
+</html>
