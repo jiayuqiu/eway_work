@@ -8,6 +8,10 @@ from pyspark import SparkContext
 from pyspark import SparkConf
 from base_func import getDist, format_convert, isInRange
 
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+
 # 求得每个珊格与其他所有珊格的距离，找到与当前珊格小于25公里的珊格
 def gridDst(coorTuple, grade, dst = 25.):
     coorList = list(coorTuple)
@@ -15,7 +19,7 @@ def gridDst(coorTuple, grade, dst = 25.):
     lat = coorList[1] + (grade / 2.)
     # 当前坐标所在的areaID
     areaID = fc.areaID(longitude=lon, latitude=lat, grade=grade)
-    print "lon = %f" % lon
+    print("lon = %f" % lon)
     # 形成地球上的每个珊格的中心的坐标
     lonList = [(i * grade) for i in range(int(-180/grade), int(180/grade))]
     latList = [(i * grade) for i in range(int(-90/grade), int(90/grade))]
@@ -143,44 +147,67 @@ def getCloseArea(areaCenterLon, areaCenterLat, dst, grade):
         closeAreaIDList.append(tmpAreaID)
     return closeAreaIDList
 
-    # while True:
-    #     # 判断经度是否发生了东西半球的跨越
-    #     # 由于只计算经度增加，所以不会发生西半球跨越到东半球的情况
-    #     if(tmpAreaCenterLon > 180):  # 从东半球跨越到西半球，将经度转换为负值
-    #         # 将经度转换为负值
-    #         tmpAreaCenterLon = -180 + (grade / 2.0)
-    #         # 求出此栅格与给定栅格中心之间的距离
-    #         tmpDst = getDist(lon1=areaCenterLon, lat1=areaCenterLat,
-    #                          lon2=tmpAreaCenterLon, lat2=areaCenterLat)
-    #         if(tmpDst < dst):
-    #             lonMoveNum += 1
-    #         tmpAreaCenterLon += grade
-    #     else:  # 若没有从东半球跨越到西半球，对经度不做任何处理
-    #         tmpDst = getDist(lon1=areaCenterLon, lat1=areaCenterLat,
-    #                          lon2=tmpAreaCenterLon, lat2=areaCenterLat)
-    #         if (tmpDst < dst):
-    #             lonMoveNum += 1
-    #         tmpAreaCenterLon += grade
 
 # 求得当前区域临近的areaID
-def gridDstOpt(coorTuple, grade, dst = 25.):
+def gridDstOpt(coorTuple, grade, dst=25.):
     coorList = list(coorTuple)
-    # print coorList
-    lon = coorList[0]
-    lat = coorList[1]
-    portName = str(coorList[2]).replace(",", ";")
-    # 获取当前区域内的经纬度极值
-    areaCenterLon, areaCenterLat = getAreaCenter(lon, lat, grade)
-    # 当前坐标所在的areaID
-    areaID = fc.areaID(longitude=lon, latitude=lat, grade=grade)
-    # 找到以25公里为半径，在半径范围内的栅格的ID
-    closeAreaIDList = getCloseArea(areaCenterLon=areaCenterLon, areaCenterLat=areaCenterLat,
-                                   dst=dst, grade=grade)
-    gridStr = ""
-    for grid in closeAreaIDList:
-        gridStr = gridStr + str(grid) + "*"
-    outStr = portName + "," + str(lon) + "," + str(lat) + "," +str(areaID) + "," + gridStr
-    return outStr
+    lon = float(coorList[0])
+    lat = float(coorList[1])
+    if len(coorList[2]) == 2:
+        portName = str(coorList[2][0])
+        portID = str(coorList[2][1]).replace(",", ";")
+
+        # 获取当前区域内的经纬度极值
+        areaCenterLon, areaCenterLat = getAreaCenter(lon, lat, grade)
+        # 当前坐标所在的areaID
+        areaID = fc.areaID(longitude=lon, latitude=lat, grade=grade)
+        # 找到以25公里为半径，在半径范围内的栅格的ID
+        closeAreaIDList = getCloseArea(areaCenterLon=areaCenterLon, areaCenterLat=areaCenterLat,
+                                       dst=dst, grade=grade)
+        gridStr = ""
+        for grid in closeAreaIDList:
+            gridStr = gridStr + str(grid) + "*"
+        outStr = portName + "," + portID + "," + str(lon) + "," + str(lat) + "," + str(areaID) + "," + gridStr
+        return outStr
+    elif len(coorList[2]) == 3:
+        portName = str(coorList[2][0])
+        portID = str(coorList[2][1]).replace(",", ";")
+        berth_id = str(coorList[2][2]).replace(",", ";")
+
+        # 获取当前区域内的经纬度极值
+        areaCenterLon, areaCenterLat = getAreaCenter(lon, lat, grade)
+        # 当前坐标所在的areaID
+        areaID = fc.areaID(longitude=lon, latitude=lat, grade=grade)
+        # 找到以25公里为半径，在半径范围内的栅格的ID
+        closeAreaIDList = getCloseArea(areaCenterLon=areaCenterLon, areaCenterLat=areaCenterLat,
+                                       dst=dst, grade=grade)
+        gridStr = ""
+        for grid in set(closeAreaIDList):
+            gridStr = gridStr + str(grid) + "*"
+
+        outStr = portName + "," + portID + "," + berth_id + "," + str(lon) + "," + str(lat) + "," + \
+                 str(areaID) + "," + gridStr
+        return outStr
+    elif len(coorList[2]) == 4:
+        portName = str(coorList[2][0])
+        portID = str(coorList[2][1]).replace(",", ";")
+        berth_id = str(coorList[2][2]).replace(",", ";")
+        terminal_id = str(coorList[2][3]).replace(",", ";")
+
+        # 获取当前区域内的经纬度极值
+        areaCenterLon, areaCenterLat = getAreaCenter(lon, lat, grade)
+        # 当前坐标所在的areaID
+        areaID = fc.areaID(longitude=lon, latitude=lat, grade=grade)
+        # 找到以25公里为半径，在半径范围内的栅格的ID
+        closeAreaIDList = getCloseArea(areaCenterLon=areaCenterLon, areaCenterLat=areaCenterLat,
+                                       dst=dst, grade=grade)
+        gridStr = ""
+        for grid in set(closeAreaIDList):
+            gridStr = gridStr + str(grid) + "*"
+
+        outStr = portName + "," + portID + "," + berth_id + "," + terminal_id + "," + str(lon) + "," + str(lat) + "," +\
+                 str(areaID) + "," + gridStr
+        return outStr
 
 
 if __name__ == "__main__":
@@ -203,18 +230,20 @@ if __name__ == "__main__":
     latListRDD = sc.parallelize(latList)
 
     # 获取ABS给出的港口数据
-    portDF = pd.read_excel("/home/qiu/Documents/data/data/staticData/tblPort.xlsx")
-    portDF = portDF.iloc[:, [1, 30, 26]]
+    portDF = pd.read_excel("/Users/qiujiayu/PycharmProjects/eway_work/sparkmoor/data/tblPortTerminal.xlsx")
+    portDF = portDF.loc[:, ["Terminal_ID", "Terminal_Name", "Dec_Latitude", "Dec_Longitude", "Port_ID"]]
+    portDF = portDF[~(portDF["Dec_Latitude"].isnull() | portDF["Dec_Longitude"].isnull())]
+    print(portDF.head())
     portList = []
     # 循环每个港口数据，元祖(portLon, portLat, portName)
     for index, value in portDF.iterrows():
-        portList.append((value["LongitudeDecimal"], value["LatitudeDecimal"], value["PortName"]))
+        tmp_name = str(value["Terminal_Name"]).replace(",", ";")
+        portList.append((value["Dec_Longitude"], value["Dec_Latitude"], [tmp_name, value["Port_ID"], value["Terminal_ID"]]))
 
-    # areaRDD = lonListRDD.cartesian(latListRDD)
+    print(portList[:4])
     areaRDD = sc.parallelize(portList)
     areaRDD.map(lambda x: gridDstOpt(coorTuple=x, grade=grade))\
-           .coalesce(1)\
-           .saveAsTextFile("/home/qiu/Documents/sparkTestResult/allPortTest")
+           .repartition(1)\
+           .saveAsTextFile("./data/terminal_areaID")
     # spark关闭
     sc.stop()
-    # print("hello world!")

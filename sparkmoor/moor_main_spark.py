@@ -335,11 +335,6 @@ def gridDstOpt(coorTuple, grade, dst = 25.):
     return outStr
 
 
-#######################################################################################################################
-
-# from areaIDDst import getCloseArea, format_convert
-# from avgSpeed import steadyAvgSpeed
-
 ####################################################################
 # 获取船舶平稳状态下的平均速度
 class steadyAvgSpeed(object):
@@ -589,13 +584,6 @@ class moor(object):
             max_sog = max(tmp_var_sog)
             maxSog_cog = tmp_var_cog[np.argmax(tmp_var_sog)]
             max_rot = max(tmp_var_rot)
-        # 返回停泊事件字段
-        # return [mmsi, begin_time, end_time, -1,
-        #         -1, -1, -1, -1, -1,
-        #         -1, -1, -1, -1, -1,
-        #         point_num, avg_lon, avg_lat, -1, -1, -1,
-        #         -1, -1, -1, -1,
-        #         -1, -1, -1, -1, -1, -1]
 
         return [mmsi, begin_time, end_time, apart_time,
                 begin_lon, begin_lat, begin_hdg, begin_sog, begin_cog,
@@ -1177,6 +1165,7 @@ class moor(object):
                 moorList.append(moorLineList)
         moorStr = self.__getNavStr(moorList)
         return moorStr
+
 
 ########################################################################################################################
 

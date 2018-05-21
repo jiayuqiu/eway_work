@@ -44,7 +44,11 @@ class format_convert(object):
             laArea = laBase - math.floor(latitude / grade)
 
         area_ID = longArea + (laArea * longLen)
-        return int(area_ID)
+        try:
+            return int(area_ID)
+        except Exception as e:
+            print(e)
+            print(longitude, latitude)
 
     # 博贸转三阶段表
     def bm_to_thr(self, line):
