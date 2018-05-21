@@ -839,7 +839,7 @@ class moor(object):
             else:  # 不在该多边形内出现
                 moorPortList = [None] * 6
                 navPolyBool = False
-                return moorPortList, navPolyBool
+        return moorPortList, navPolyBool
 
     # 获取离停泊事件发生地点最近的地点ID
     def __get_closest_port(self, close_port_df, moorLon, moorLat, min_radius):
