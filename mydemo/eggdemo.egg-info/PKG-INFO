@@ -1,0 +1,11 @@
+Metadata-Version: 1.0
+Name: eggdemo
+Version: 0.1.0
+Summary: egg test mydemo
+Home-page: UNKNOWN
+Author: zhouguoqing
+Author-email: zhouguoqing\@gmail.com
+License: GPL
+Description: egg test demo.
+Keywords: test api mydemo
+Platform: Independant

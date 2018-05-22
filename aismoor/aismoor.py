@@ -831,14 +831,15 @@ class moor(object):
             aPolyPortCoorArray = np.array(aPolyPortCoorList)
             # 判断停泊事件是否存在于次多边形内
 
-            if point_poly(moorLon, moorLat, aPolyPortCoorArray):
-                # 在原来的停泊事件字段内添加港口名称、港口经度、港口纬度数据
-                moorPortList = [portNameStr, -1, -1, -1, portAvgLon, portAvgLat]
-                navPolyBool = True
-                return moorPortList, navPolyBool
-            else:  # 不在该多边形内出现
-                moorPortList = [None] * 6
-                navPolyBool = False
+            moor_port_dst = getDist(lon1=portAvgLon, lat1=portAvgLat, lon2=moorLon, lat2=moorLat)
+            moorPortList = [None] * 6
+            navPolyBool = False
+            if moor_port_dst < 30.:
+                if point_poly(moorLon, moorLat, aPolyPortCoorArray):
+                    # 在原来的停泊事件字段内添加港口名称、港口经度、港口纬度数据
+                    moorPortList = [portNameStr, -1, -1, -1, portAvgLon, portAvgLat]
+                    navPolyBool = True
+                    return moorPortList, navPolyBool
         return moorPortList, navPolyBool
 
     # 获取离停泊事件发生地点最近的地点ID
