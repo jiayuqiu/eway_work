@@ -166,37 +166,15 @@ def point_poly(pointLon, pointLat, polygon):
 
 # 将list转换为一个大字符串输出
 # 输入参数：nav_event -- 停泊事件list
-def getNavStr(events):
-    if (len(events) != 0):
-        try:
-            for line in events:
-                if line[6] < 1000.:
-                    line[6] = int(line[6] * 1000000)
-
-                if line[7] < 1000.:
-                    line[7] = int(line[7] * 1000000)
-            row_num = len(events)  # 获取停泊事件的行数
-            col_num = len(events[0])  # 获取停泊事件的列数
-            temp_events = ""  # 初始化该船舶的所有停泊事件
-            for i in range(0, row_num):  # 循环停泊事件列表的每一列
-                if (i == (row_num - 1)):
-                    for j in range(0, col_num):  # 循环获取每一列的数据
-                        if (j != (col_num - 1)):  # 若不是最后一列，用","分割
-                            temp = str(events[i][j]) + ","
-                        else:  # 若是最后一行的最后一列，只需要加入数据即可
-                            temp = str(events[i][j])
-                        temp_events = temp_events + temp
-                else:
-                    for j in range(0, col_num):  # 循环获取每一列的数据
-                        if (j != (col_num - 1)):  # 若不是最后一列，用","分割
-                            temp = str(events[i][j]) + ","
-                        else:  # 若不是最后一行的最后一列，只需要加入"\n"
-                            temp = str(events[i][j]) + "\n"
-                        temp_events = temp_events + temp
-            return temp_events
-        except Exception as e:
-            print('err events')
-            print('There is error when outputing nav, error is : %s' % e)
+def getNavStr(input_list):
+    output_str_list = list()
+    input_str_list = [[str(x) for x in ele] for ele in input_list]
+    for ele in input_str_list:
+        ele[6] = str(int(float(ele[6]) * 1000000))
+        ele[7] = str(int(float(ele[7]) * 1000000))
+        output_str_list.append(','.join(ele) + '\n')
+    output_str = ''.join(list(set(output_str_list)))
+    return output_str[:-1]
 
 
 #------------------------------------------------------------------------------------------
